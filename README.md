@@ -1,0 +1,90 @@
+# ✨ K-Booth Webapp
+
+A modern, interactive Korean-style photobooth web application built with React and Vite. K-Booth brings the fun of photo strips directly to your browser, working seamlessly on both laptops and mobile devices.
+
+![K-Booth Preview](https://img.shields.io/badge/Status-Live-pink)
+
+## 📸 Features
+
+* **Multiple Layouts:** Choose from 3 trendy styles:
+    * **2x6" Strip:** Classic vertical photobooth strip (4 photos).
+    * **4x6" Vertical:** Standard photo frame with a 2x2 grid.
+    * **2x3 Grid:** A 6-photo collage layout.
+* **Live Camera:** Real-time webcam feed with a countdown timer (3s) for the perfect pose.
+* **Live Preview:** See your photo strip fill up in real-time as you snap pictures.
+* **Photo Editing:**
+    * **6 Stunning Filters:** Original, Mono, Warm, Cool, Soft, and Vintage.
+    * **Custom Frames:** Change the border color (White, Black, Pastel Pink, Sky Blue, Cream, Lilac).
+* **Upload Support:** Don't have a webcam? Upload existing photos to create your strip.
+* **Instant Download:** Save your creation as a high-quality PNG image.
+* **Mobile Responsive:** Optimized UI that works great on phones and desktops.
+
+## 🛠️ Tech Stack
+
+* **Framework:** [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+* **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+* **Icons:** [Lucide React](https://lucide.dev/)
+* **Image Generation:** [html2canvas](https://html2canvas.hertzen.com/)
+
+## 🚀 Getting Started
+
+Follow these instructions to set up the project locally on your machine.
+
+### Prerequisites
+
+* Node.js (v16 or higher) installed.
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/your-username/k-booth-app.git](https://github.com/your-username/k-booth-app.git)
+    cd k-booth-app
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+
+4.  **Open in browser:**
+    Visit the URL shown in your terminal (usually `http://localhost:5173`).
+
+## 📦 Deployment
+
+This project is configured for easy deployment to **GitHub Pages**.
+
+1.  **Update Configuration:**
+    Ensure your `vite.config.js` has the correct base path matching your repository name:
+    ```javascript
+    base: '/repo-name/',
+    ```
+
+2.  **Deploy Command:**
+    Run the deploy script to build and push to the `gh-pages` branch:
+    ```bash
+    npm run deploy
+    ```
+
+3.  **Verify:**
+    Go to your GitHub Repository > Settings > Pages and ensure the source is set to the `gh-pages` branch.
+
+## 📂 Project Structure
+
+```text
+src/
+├── components/
+│   ├── CameraCapture.jsx     # Webcam view 
+│   ├── LayoutSelection.jsx   # Initial screen (choose layout)
+│   └── PhotoEditor.jsx       # Editing screen 
+├── constants/
+│   └── config.js             # Configuration (layouts, filters, colors)
+├── utils/
+│   └── html2canvasLoader.js  # Helper to load image
+├── App.jsx                   # Main application logic 
+└── index.css                 # Global styles & Tailwind directives

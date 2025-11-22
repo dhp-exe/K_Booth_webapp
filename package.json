@@ -1,4 +1,8 @@
 {
+  "name": "k-booth-app",
+  "homepage": "https://github.com/dhp-exe/K_Booth_webapp",
+  "private": true,
+  "version": "0.0.0",
   "dependencies": {
     "lucide-react": "^0.554.0"
   },
