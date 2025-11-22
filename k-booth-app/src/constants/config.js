@@ -1,7 +1,7 @@
 export const LAYOUTS = [
-  { id: 'strip4', name: '4-Cut Strip', slots: 4, cols: 1, label: 'Vertical Strip' },
-  { id: 'grid2x2', name: '2x2 Grid', slots: 4, cols: 2, label: 'Square Grid' },
-  { id: 'grid3x2', name: '6-Cut Grid', slots: 6, cols: 2, label: 'Large Grid' },
+  { id: 'strip4', name: '2x6 Strip', slots: 4, cols: 1, label: 'Classic Strip' },
+  { id: 'grid2x2', name: '4x6 Vertical', slots: 4, cols: 2, label: '4-Photo Frame' },
+  { id: 'grid3x2', name: '2x3 Grid', slots: 6, cols: 2, label: '6-Photo Frame' },
 ];
 
 export const FILTERS = [
