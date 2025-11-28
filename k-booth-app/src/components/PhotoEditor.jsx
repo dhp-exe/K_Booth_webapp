@@ -34,7 +34,13 @@ export default function PhotoEditor({
           >
             <div className={`p-4 md:p-6 grid ${gridClass} gap-3 md:gap-4`}>
               {photos.map((photo, idx) => (
-                <div key={idx} className="relative aspect-[3/4] bg-gray-100 overflow-hidden shadow-inner">
+                <div 
+                  key={idx} 
+                  // --- FIX 2: Match the Class to the Camera Crop (aspect-[4/3]) ---
+                  className={`relative bg-gray-100 overflow-hidden shadow-inner ${
+                    layout.id === 'strip4' ? 'aspect-[4/3]' : 'aspect-[2/3]'
+                  }`}
+                >
                   <img 
                     src={photo} 
                     className="w-full h-full object-cover"
@@ -61,7 +67,7 @@ export default function PhotoEditor({
             </div>
           </div>
 
-          <p className="text-gray-400 text-xs mt-4">Preview (Drag to save not supported, use button)</p>
+          <p className="text-gray-400 text-xs mt-4">Preview</p>
         </div>
       </div>
 
@@ -138,11 +144,11 @@ export default function PhotoEditor({
             ) : (
               <>
                 <Download size={20} />
-                Save Photo Strip
+                Save Photo
               </>
             )}
           </button>
-          <p className="text-center text-gray-400 text-xs mt-3">High quality • No watermark</p>
+          <p className="text-center text-gray-400 text-xs mt-3">Made by dhp.</p>
         </div>
       </div>
     </div>

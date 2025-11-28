@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Upload, ChevronLeft, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, ChevronLeft, X, Image as ImageIcon, Zap } from 'lucide-react';
 
 export default function CameraCapture({ 
   stream, 
@@ -11,28 +11,29 @@ export default function CameraCapture({
   onTakePhoto, 
   onUpload, 
   onUndo, 
-  onBack 
+  onBack,
+  // New Props
+  isAutoMode,
+  setIsAutoMode
 }) {
   
-  // --- FIX: Automatically attach the stream to the video element ---
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream, videoRef]);
 
-  // --- Helper Component: Renders the mini layout with captured photos ---
   const LayoutPreview = () => {
     const slotClass = "bg-gray-100 rounded-sm flex items-center justify-center text-gray-300 overflow-hidden relative";
     const activeClass = "ring-2 ring-pink-500 ring-offset-1"; 
-    const cardClass = "bg-white p-3 rounded-xl shadow-lg border border-gray-100 flex flex-col transition-all duration-300";
+    const cardClass = "bg-white p-3 rounded-xl shadow-lg border border-gray-100 flex flex-col transition-all duration-300 h-auto";
 
-    const renderSlot = (index) => {
+    const renderSlot = (index, aspectClass) => {
         const hasPhoto = photos[index];
         const isNext = index === photos.length;
         
         return (
-            <div key={index} className={`flex-1 ${slotClass} ${isNext ? activeClass : ''}`}>
+            <div key={index} className={`flex-1 ${slotClass} ${aspectClass} ${isNext ? activeClass : ''}`}>
                 {hasPhoto ? (
                     <img src={hasPhoto} alt={`shot-${index}`} className="w-full h-full object-cover" />
                 ) : (
@@ -45,25 +46,25 @@ export default function CameraCapture({
     switch (layout.id) {
       case 'strip4': 
         return (
-          <div className={`${cardClass} w-24 h-64`}>
+          <div className={`${cardClass} w-32`}>
              <div className="flex-1 flex flex-col gap-2">
-                {[...Array(4)].map((_, i) => renderSlot(i))}
+                {[...Array(4)].map((_, i) => renderSlot(i, 'aspect-[4/3]'))}
              </div>
           </div>
         );
       case 'grid2x2':
         return (
-          <div className={`${cardClass} w-40 h-56 justify-center`}>
-            <div className="aspect-[2/3] w-full grid grid-cols-2 gap-2">
-               {[...Array(4)].map((_, i) => renderSlot(i))}
+          <div className={`${cardClass} w-48`}>
+            <div className="w-full grid grid-cols-2 gap-2">
+               {[...Array(4)].map((_, i) => renderSlot(i, 'aspect-[2/3]'))}
             </div>
           </div>
         );
       case 'grid3x2':
         return (
-          <div className={`${cardClass} w-40 h-56 justify-center`}>
-             <div className="aspect-[2/3] w-full grid grid-cols-2 gap-2">
-                {[...Array(6)].map((_, i) => renderSlot(i))}
+          <div className={`${cardClass} w-48`}>
+             <div className="w-full grid grid-cols-2 gap-2">
+                {[...Array(6)].map((_, i) => renderSlot(i, 'aspect-[2/3]'))}
              </div>
           </div>
         );
@@ -85,10 +86,8 @@ export default function CameraCapture({
         <div className="w-10"></div>
       </div>
 
-      {/* Main Viewfinder - RESIZED with Padding */}
+      {/* Main Viewfinder */}
       <div className="flex-1 relative flex items-center justify-center bg-gray-900 p-4 pb-0 md:p-10 overflow-hidden">
-        
-        {/* Video Container with Rounded Corners */}
         <div className="relative w-full h-full max-w-6xl overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10 bg-black">
             {stream ? (
             <video 
@@ -104,7 +103,7 @@ export default function CameraCapture({
             </div>
             )}
             
-            {/* Countdown Overlay inside the video frame */}
+            {/* Countdown Overlay */}
             {countdown && (
             <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/40 backdrop-blur-[2px]">
                 <span className="text-9xl font-bold animate-pulse text-white drop-shadow-2xl">{countdown}</span>
@@ -114,7 +113,7 @@ export default function CameraCapture({
             <canvas ref={canvasRef} className="hidden" />
         </div>
 
-        {/* Live Layout Preview - Floating Top Right */}
+        {/* Live Layout Preview */}
         <div className="absolute top-12 right-6 z-20 opacity-90 hover:opacity-100 transition-opacity hidden md:block">
             <LayoutPreview />
         </div>
@@ -122,13 +121,11 @@ export default function CameraCapture({
 
       {/* Controls Bar */}
       <div className="bg-black p-6 pb-10 flex flex-col gap-4 items-center relative z-30 shadow-2xl">
-        
-        {/* Mobile Preview (Shows above buttons on small screens) */}
         <div className="md:hidden absolute bottom-full right-4 mb-4 scale-75 origin-bottom-right">
             <LayoutPreview />
         </div>
 
-        <div className="flex items-center justify-center gap-12 w-full max-w-md">
+        <div className="flex items-center justify-center gap-8 w-full max-w-lg">
            {/* Upload */}
            <label className="flex flex-col items-center gap-2 cursor-pointer group">
               <div className="p-3.5 rounded-full bg-gray-800 border border-gray-700 group-hover:bg-gray-700 group-hover:border-gray-500 transition-all">
@@ -138,11 +135,28 @@ export default function CameraCapture({
               <input type="file" accept="image/*" multiple className="hidden" onChange={onUpload} />
            </label>
 
+           {/* --- NEW: Auto Mode Toggle --- */}
+           <button 
+             onClick={() => setIsAutoMode(!isAutoMode)}
+             className={`flex flex-col items-center gap-2 group transition-all ${isAutoMode ? 'scale-110' : ''}`}
+           >
+              <div className={`p-3.5 rounded-full border transition-all duration-300
+                 ${isAutoMode 
+                    ? 'bg-yellow-500/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' 
+                    : 'bg-gray-800 border-gray-700 group-hover:border-gray-500'}
+              `}>
+                <Zap size={20} className={`transition-colors ${isAutoMode ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+              </div>
+              <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors ${isAutoMode ? 'text-yellow-400' : 'text-gray-400'}`}>
+                {isAutoMode ? 'Auto On' : 'Auto Off'}
+              </span>
+           </button>
+
            {/* Shutter Button */}
            <button 
              onClick={onTakePhoto}
              disabled={countdown !== null || photos.length >= layout.slots}
-             className={`w-20 h-20 rounded-full border-[5px] flex items-center justify-center transition-all duration-300 shadow-lg
+             className={`w-20 h-20 rounded-full border-[5px] flex items-center justify-center transition-all duration-300 shadow-lg relative
                ${countdown !== null ? 'border-red-500 bg-red-500/20 scale-95' : 'border-white hover:bg-white/20 active:scale-90'}
                ${photos.length >= layout.slots ? 'opacity-50 cursor-not-allowed border-gray-500' : ''}
              `}

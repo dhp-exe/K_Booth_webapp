@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LAYOUTS, FILTERS, FRAME_COLORS } from './constants/config';
-import { loadHtml2Canvas } from './utils/html2canvasLoader';
+import { loadHtml2Canvas } from './utils/html2canvasLoader.js';
 import LayoutSelection from './components/LayoutSelection';
 import CameraCapture from './components/CameraCapture';
 import PhotoEditor from './components/PhotoEditor';
@@ -15,6 +15,9 @@ export default function App() {
   const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
   const [selectedFrame, setSelectedFrame] = useState(FRAME_COLORS[0]);
   const [isDownloading, setIsDownloading] = useState(false);
+  
+  // --- NEW: Auto Capture State ---
+  const [isAutoMode, setIsAutoMode] = useState(false);
 
   // Refs
   const videoRef = useRef(null);
@@ -29,6 +32,19 @@ export default function App() {
       }
     };
   }, [stream]);
+
+  // --- NEW: Auto Capture Logic ---
+  // Watch for changes in 'photos'. If in Auto Mode and slots aren't full, trigger next shot.
+  useEffect(() => {
+    if (isAutoMode && step === 'capture' && photos.length > 0 && photos.length < selectedLayout.slots) {
+       // Wait 1.5 seconds so user can see their last shot, then start countdown again
+       const timer = setTimeout(() => {
+           takePhoto();
+       }, 1500);
+       return () => clearTimeout(timer);
+    }
+  }, [photos, isAutoMode, step]);
+
 
   // --- Actions ---
 
@@ -85,16 +101,40 @@ export default function App() {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Standardize Aspect Ratios: Strip = 4:3 (Landscape) | Grid = 2:3 (Portrait)
+    const isStrip = selectedLayout.id === 'strip4';
+    const targetRatio = isStrip ? 4/3 : 2/3;
     
-    // Horizontal flip for mirror effect
+    // Calculate Crop
+    const videoRatio = video.videoWidth / video.videoHeight;
+    let renderWidth, renderHeight, startX, startY;
+
+    if (videoRatio > targetRatio) {
+      renderHeight = video.videoHeight;
+      renderWidth = video.videoHeight * targetRatio;
+      startX = (video.videoWidth - renderWidth) / 2;
+      startY = 0;
+    } else {
+      renderWidth = video.videoWidth;
+      renderHeight = video.videoWidth / targetRatio;
+      startX = 0;
+      startY = (video.videoHeight - renderHeight) / 2;
+    }
+
+    canvas.width = renderWidth;
+    canvas.height = renderHeight;
+    
+    // Draw & Flip
     context.translate(canvas.width, 0);
     context.scale(-1, 1);
     
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      video,
+      startX, startY, renderWidth, renderHeight,
+      0, 0, canvas.width, canvas.height
+    );
     
-    const imageUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const imageUrl = canvas.toDataURL('image/jpeg', 1.0);
     const newPhotos = [...photos, imageUrl];
     setPhotos(newPhotos);
 
@@ -102,6 +142,7 @@ export default function App() {
       setTimeout(() => {
         stopCamera();
         setStep('edit');
+        setIsAutoMode(false); // Reset auto mode when finished
       }, 500);
     }
   };
@@ -142,6 +183,25 @@ export default function App() {
         scale: 2,
         useCORS: true,
         backgroundColor: null,
+        onclone: (clonedDoc) => {
+          const images = clonedDoc.querySelectorAll('img');
+          images.forEach((img) => {
+            if (img.style.filter && img.style.filter !== 'none') {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.filter = img.style.filter;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                img.src = canvas.toDataURL('image/png');
+                img.style.filter = 'none';
+              } catch (err) {
+                console.error("Filter apply error", err);
+              }
+            }
+          });
+        }
       });
       
       const link = document.createElement('a');
@@ -162,6 +222,7 @@ export default function App() {
     setStep('layout');
     setSelectedFilter(FILTERS[0]);
     setSelectedFrame(FRAME_COLORS[0]);
+    setIsAutoMode(false); // Ensure auto mode is off on restart
   };
 
   const deleteLastPhoto = () => {
@@ -189,6 +250,9 @@ export default function App() {
           onUpload={handleFileUpload}
           onUndo={deleteLastPhoto}
           onBack={restart}
+          // --- NEW Props ---
+          isAutoMode={isAutoMode}
+          setIsAutoMode={setIsAutoMode}
         />
       )}
       
