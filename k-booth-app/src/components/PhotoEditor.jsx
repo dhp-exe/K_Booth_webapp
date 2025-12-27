@@ -18,34 +18,25 @@ export default function PhotoEditor({
   isDownloading,
   onRestart
 }) {
-  // --- STATE FOR BACKGROUND REMOVAL ---
-  const [processedPhotos, setProcessedPhotos] = useState({}); // Stores transparent versions
+  const [processedPhotos, setProcessedPhotos] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedBg, setSelectedBg] = useState(BACKGROUNDS[0]); // Default to 'none'
+  const [selectedBg, setSelectedBg] = useState(BACKGROUNDS[0]);
 
   const gridClass = layout.id === 'strip4' ? 'grid-cols-1' : 'grid-cols-2';
-  const containerWidth = layout.id === 'strip4' ? 'max-w-[300px]' : 'max-w-[480px]';
+  const containerWidth = layout.id === 'strip4' ? 'max-w-[200px] md:max-w-[300px]' : 'max-w-[320px] md:max-w-[480px]';
 
-  // --- HANDLER: Background Selection ---
   const handleBackgroundChange = async (bg) => {
     setSelectedBg(bg);
-
-    // Only run AI if we haven't processed these photos yet AND we are choosing a real background
     if (bg.id !== 'none' && Object.keys(processedPhotos).length === 0) {
       setIsProcessing(true);
       const newProcessed = {};
-      
       try {
-        // Process all photos in the strip
         for (let i = 0; i < photos.length; i++) {
-            const originalUrl = photos[i];
-            const transparentUrl = await removeBackground(originalUrl);
-            newProcessed[i] = transparentUrl;
+            newProcessed[i] = await removeBackground(photos[i]);
         }
         setProcessedPhotos(newProcessed);
       } catch (error) {
-        console.error("Segmentation failed", error);
-        alert("Could not process background. Please try again.");
+        alert("Background removal failed.");
       } finally {
         setIsProcessing(false);
       }
@@ -59,88 +50,94 @@ export default function PhotoEditor({
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden">
+    // UPDATED: Main container uses dynamic viewport height
+    <div className="flex flex-col md:flex-row h-[100dvh] bg-gray-100 overflow-hidden">
       
-      {/* LEFT: Live Preview Area */}
-      <div className="flex-1 overflow-y-auto p-8 flex items-start justify-center bg-gray-200/50">
-        <div className="flex flex-col items-center gap-4">
-          
-          {/* The Photobooth Strip */}
-          <div 
-            ref={printRef}
-            className={`relative shadow-2xl overflow-hidden transition-colors duration-300 ${containerWidth}`}
-            style={{ backgroundColor: selectedFrame.hex }}
-          >
-            <div className={`p-4 md:p-6 grid ${gridClass} gap-3 md:gap-4`}>
-              {photos.map((originalPhoto, idx) => {
-                // LOGIC: If a background is active & we have the cutout, show that. Otherwise show original.
-                const showTransparent = selectedBg.id !== 'none' && processedPhotos[idx];
-                const displayPhoto = showTransparent ? processedPhotos[idx] : originalPhoto;
+      {/* 1. IMAGE PREVIEW AREA */}
+      {/* FIX: Removed 'flex items-center justify-center' from parent to prevent clipping */}
+      <div className="h-[55%] md:h-full md:flex-1 relative bg-gray-200/50 overflow-hidden">
+        
+        {/* Scrollable Container */}
+        <div className="absolute inset-0 overflow-y-auto overflow-x-hidden flex flex-col p-6">
+            
+            {/* Content Wrapper with 'my-auto' for safe centering */}
+            <div className="my-auto w-full flex flex-col items-center gap-4 min-h-min">
+            
+                {/* The Photobooth Strip */}
+                <div 
+                    ref={printRef}
+                    className={`relative shadow-2xl overflow-hidden transition-colors duration-300 ${containerWidth} shrink-0`}
+                    style={{ backgroundColor: selectedFrame.hex }}
+                >
+                    <div className={`p-3 md:p-6 grid ${gridClass} gap-2 md:gap-4`}>
+                    {photos.map((originalPhoto, idx) => {
+                        const showTransparent = selectedBg.id !== 'none' && processedPhotos[idx];
+                        const displayPhoto = showTransparent ? processedPhotos[idx] : originalPhoto;
 
-                return (
-                  <div 
-                    key={idx} 
-                    className={`relative overflow-hidden shadow-inner flex items-center justify-center
-                      ${layout.id === 'strip4' ? 'aspect-[4/3]' : 'aspect-[2/3]'}
-                      ${showTransparent ? '' : 'bg-gray-100'} 
-                    `}
-                    // The custom background goes on the CONTAINER
-                    style={showTransparent ? getBackgroundStyle(selectedBg) : {}}
-                  >
-                    {/* Loading Spinner for specific photo slot */}
-                    {isProcessing && !processedPhotos[idx] && selectedBg.id !== 'none' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
-                            <RefreshCw className="animate-spin text-pink-500" />
+                        return (
+                        <div 
+                            key={idx} 
+                            className={`relative overflow-hidden shadow-inner flex items-center justify-center
+                            ${layout.id === 'strip4' ? 'aspect-[4/3]' : 'aspect-[2/3]'}
+                            ${showTransparent ? '' : 'bg-gray-100'} 
+                            `}
+                            style={showTransparent ? getBackgroundStyle(selectedBg) : {}}
+                        >
+                            {isProcessing && !processedPhotos[idx] && selectedBg.id !== 'none' && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
+                                    <RefreshCw className="animate-spin text-pink-500" />
+                                </div>
+                            )}
+                            <img 
+                            src={displayPhoto} 
+                            className={`w-full h-full object-cover transition-all duration-500
+                                ${showTransparent ? 'scale-105' : 'scale-100'}
+                            `}
+                            style={{ filter: selectedFilter.css }}
+                            alt={`frame-${idx}`}
+                            />
                         </div>
-                    )}
+                        );
+                    })}
+                    </div>
 
-                    {/* The Photo (Original or Cutout) */}
-                    <img 
-                      src={displayPhoto} 
-                      className={`w-full h-full object-cover transition-all duration-500
-                        ${showTransparent ? 'scale-105' : 'scale-100'} // Zoom slightly if cutout to fit better
-                      `}
-                      style={{ filter: selectedFilter.css }}
-                      alt={`frame-${idx}`}
-                    />
-                  </div>
-                );
-              })}
+                    <div className="pb-3 pt-1 flex justify-between items-end px-4 md:px-6">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] md:text-[10px] uppercase tracking-widest opacity-60 font-bold" style={{ color: selectedFrame.text }}>
+                        {new Date().toLocaleDateString('en-GB', { year: '2-digit', month: '2-digit', day: 'numeric' })}
+                        </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <h2 className="font-bold tracking-tighter text-sm md:text-lg leading-none" style={{ color: selectedFrame.text }}>
+                        K-BOOTH
+                        </h2>
+                        <span className="text-[6px] md:text-[8px] opacity-70" style={{ color: selectedFrame.text }}>memory archive</span>
+                    </div>
+                    </div>
+                </div>
+                
+                <p className="text-gray-400 text-[10px] md:text-xs">Preview</p>
             </div>
-
-            {/* Footer / Branding */}
-            <div className="pb-4 pt-1 flex justify-between items-end px-6">
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-widest opacity-60 font-bold" style={{ color: selectedFrame.text }}>
-                  {new Date().toLocaleDateString('en-GB', { year: '2-digit', month: '2-digit', day: 'numeric' })}
-                </span>
-              </div>
-              <div className="flex flex-col items-end">
-                 <h2 className="font-bold tracking-tighter text-lg leading-none" style={{ color: selectedFrame.text }}>
-                   K-BOOTH
-                 </h2>
-                 <span className="text-[8px] opacity-70" style={{ color: selectedFrame.text }}>memory archive</span>
-              </div>
-            </div>
-          </div>
-          <p className="text-gray-400 text-xs mt-4">Preview</p>
         </div>
       </div>
 
-      {/* RIGHT: Tools Panel */}
-      <div className="w-full md:w-80 bg-white shadow-xl z-20 flex flex-col border-l border-gray-100">
-        <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-           <h3 className="font-bold text-gray-800">Edit Photo Strip</h3>
-           <button onClick={onRestart} className="text-sm text-red-400 hover:text-red-600 font-medium">Start Over</button>
+      {/* 2. TOOLS PANEL (Bottom Drawer) */}
+      <div className="h-[45%] md:h-full w-full md:w-80 bg-white shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] md:shadow-xl z-20 flex flex-col rounded-t-3xl md:rounded-none border-t border-gray-100">
+        
+        {/* Header */}
+        <div className="p-4 border-b border-gray-100 flex justify-between items-center shrink-0">
+           <h3 className="font-bold text-gray-800 text-sm md:text-base">Edit Photo Strip</h3>
+           <button onClick={onRestart} className="text-xs md:text-sm text-red-400 hover:text-red-600 font-medium">Start Over</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-8">
+        {/* Scrollable Controls */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
           
-          {/* 1. BACKGROUNDS (NEW) */}
+          {/* Backgrounds */}
           <div>
-            <div className="flex items-center gap-2 mb-3 text-gray-800 font-medium">
-              <Sparkles size={18} className="text-pink-500" />
-              <span>Background (Phước đang thử nghiệm)</span>
+            <div className="flex items-center gap-2 mb-2 text-gray-800 font-medium text-sm">
+              <Sparkles size={16} className="text-pink-500" />
+              <span>Background (fuoc dang test cnay)</span>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {BACKGROUNDS.map(bg => (
@@ -148,25 +145,21 @@ export default function PhotoEditor({
                    key={bg.id}
                    onClick={() => handleBackgroundChange(bg)}
                    className={`aspect-square rounded-lg border-2 overflow-hidden relative transition-all
-                     ${selectedBg.id === bg.id ? 'border-pink-500 ring-2 ring-pink-200' : 'border-gray-100 hover:border-gray-300'}
+                     ${selectedBg.id === bg.id ? 'border-pink-500 ring-2 ring-pink-200' : 'border-gray-100'}
                    `}
                    style={getBackgroundStyle(bg)}
                  >
-                    {bg.id === 'none' && <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">None</div>}
-                    {selectedBg.id === bg.id && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                             <Check size={16} className="text-white drop-shadow-md" />
-                        </div>
-                    )}
+                    {bg.id === 'none' && <div className="w-full h-full bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">Off</div>}
+                    {selectedBg.id === bg.id && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Check size={14} className="text-white"/></div>}
                  </button>
               ))}
             </div>
           </div>
 
-          {/* 2. Filters (Existing) */}
+          {/* Filters */}
           <div>
-            <div className="flex items-center gap-2 mb-3 text-gray-800 font-medium">
-              <Palette size={18} className="text-pink-500" />
+            <div className="flex items-center gap-2 mb-2 text-gray-800 font-medium text-sm">
+              <Palette size={16} className="text-pink-500" />
               <span>Filters</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -174,12 +167,12 @@ export default function PhotoEditor({
                 <button 
                   key={f.id}
                   onClick={() => onFilterChange(f)}
-                  className={`h-16 rounded-lg overflow-hidden relative border-2 transition-all group
-                    ${selectedFilter.id === f.id ? 'border-pink-500 ring-2 ring-pink-200' : 'border-transparent hover:border-gray-200'}
+                  className={`h-12 md:h-16 rounded-lg overflow-hidden relative border-2 transition-all
+                    ${selectedFilter.id === f.id ? 'border-pink-500' : 'border-transparent'}
                   `}
                 >
                   <img src={photos[0]} className="w-full h-full object-cover absolute inset-0" style={{ filter: f.css }} alt={f.name} />
-                  <span className="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 text-center backdrop-blur-sm">
+                  <span className="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[8px] md:text-[10px] p-0.5 text-center backdrop-blur-sm">
                     {f.name}
                   </span>
                 </button>
@@ -187,25 +180,23 @@ export default function PhotoEditor({
             </div>
           </div>
 
-          {/* 3. Frames (Existing) */}
+          {/* Frames */}
           <div>
-            <div className="flex items-center gap-2 mb-3 text-gray-800 font-medium">
-              <Layout size={18} className="text-pink-500" />
+            <div className="flex items-center gap-2 mb-2 text-gray-800 font-medium text-sm">
+              <Layout size={16} className="text-pink-500" />
               <span>Frame Color</span>
             </div>
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-6 gap-3">
               {frames.map(color => (
                 <button
                   key={color.id}
                   onClick={() => onFrameChange(color)}
-                  className={`w-full aspect-square rounded-full border border-gray-200 shadow-sm relative flex items-center justify-center transition-transform active:scale-95
-                    ${selectedFrame.id === color.id ? 'ring-2 ring-offset-2 ring-pink-500' : ''}
+                  className={`w-full aspect-square rounded-full border border-gray-200 shadow-sm relative flex items-center justify-center
+                    ${selectedFrame.id === color.id ? 'ring-2 ring-offset-1 ring-pink-500' : ''}
                   `}
                   style={{ backgroundColor: color.hex }}
                 >
-                  {selectedFrame.id === color.id && (
-                    <Check size={16} style={{ color: color.text }} />
-                  )}
+                  {selectedFrame.id === color.id && <Check size={12} style={{ color: color.text }} />}
                 </button>
               ))}
             </div>
@@ -213,22 +204,16 @@ export default function PhotoEditor({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 bg-gray-50 border-t border-gray-100">
+        <div className="p-4 bg-gray-50 border-t border-gray-100 shrink-0 safe-pb">
           <button 
             onClick={onDownload}
             disabled={isDownloading || isProcessing}
-            className="w-full bg-pink-500 hover:bg-pink-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+            className="w-full bg-pink-500 active:bg-pink-600 text-white py-3 rounded-xl font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
           >
             {isDownloading || isProcessing ? (
-              <>
-                <RefreshCw className="animate-spin" size={20} />
-                {isProcessing ? 'Processing...' : 'Saving...'}
-              </>
+              <><RefreshCw className="animate-spin" size={18} /> Processing...</>
             ) : (
-              <>
-                <Download size={20} />
-                Save Photo
-              </>
+              <><Download size={18} /> Save Photo</>
             )}
           </button>
           <p className="text-center text-gray-400 text-xs mt-3">Made by dhp.</p>
