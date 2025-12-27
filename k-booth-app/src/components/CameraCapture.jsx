@@ -88,7 +88,7 @@ export default function CameraCapture({
 
       {/* Main Viewfinder */}
       <div className="flex-1 relative flex items-center justify-center bg-gray-900 p-4 pb-0 md:p-10 overflow-hidden">
-        <div className="relative w-full h-full max-w-6xl overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10 bg-black">
+        <div className="relative w-full h-full max-w-4xl overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10 bg-black">
             {stream ? (
             <video 
                 ref={videoRef} 
