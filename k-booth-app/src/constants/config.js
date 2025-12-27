@@ -79,8 +79,8 @@ export const FRAME_COLORS = [
   { id: 'black', name: 'Black', hex: '#1a1a1a', text: '#ffffff' },
   { id: 'dark red', name:'Dark red', hex: '#530000', text: '#fff7f7ff'},
   { id: 'pink', name: 'Pastel Pink', hex: '#ffa0d4ff', text: '#4c1029ff' },
-  { id: 'blue', name: 'Sky Blue', hex: '#a4cbe5ff', text: '#0369a1' },
+  { id: 'blue', name: 'Sky Blue', hex: '#a4cbe5ff', text: '#015b8cff' },
   { id: 'cream', name: 'Cream', hex: '#fff0b5ff', text: '#b45309' },
-  { id: 'purple', name: 'Lilac', hex: '#d1a6fcff', text: '#7e22ce' },
+  { id: 'purple', name: 'Lilac', hex: '#341539', text: '#eedaffff' },
   { id: 'orange', name: 'Fox Orange', hex: '#857056ff', text: '#f6e1d8ff' },
 ];

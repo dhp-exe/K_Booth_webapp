@@ -160,29 +160,79 @@ export default function App() {
     }
   };
 
-  const handleFileUpload = (e) => {
+  const processUploadedFile = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // 1. Determine Target Ratio (Same as Camera logic)
+          const isStrip = selectedLayout.id === 'strip4';
+          const targetRatio = isStrip ? 4/3 : 2/3;
+
+          // 2. Calculate Center Crop
+          const imgRatio = img.width / img.height;
+          let renderWidth, renderHeight, startX, startY;
+
+          if (imgRatio > targetRatio) {
+            // Image is wider than target -> Crop sides
+            renderHeight = img.height;
+            renderWidth = img.height * targetRatio;
+            startX = (img.width - renderWidth) / 2;
+            startY = 0;
+          } else {
+            // Image is taller than target -> Crop top/bottom
+            renderWidth = img.width;
+            renderHeight = img.width / targetRatio;
+            startX = 0;
+            startY = (img.height - renderHeight) / 2;
+          }
+
+          // 3. Set Canvas Size (Keep original high resolution)
+          canvas.width = renderWidth;
+          canvas.height = renderHeight;
+
+          // 4. Draw (No Mirroring for Uploads)
+          ctx.drawImage(
+            img,
+            startX, startY, renderWidth, renderHeight,
+            0, 0, canvas.width, canvas.height
+          );
+
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     const remainingSlots = selectedLayout.slots - photos.length;
     const filesToProcess = files.slice(0, remainingSlots);
 
-    filesToProcess.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPhotos(prev => {
-          if (prev.length >= selectedLayout.slots) return prev;
-          return [...prev, ev.target.result];
-        });
-      };
-      reader.readAsDataURL(file);
-    });
+    // Process files one by one to ensure they are cropped
+    for (const file of filesToProcess) {
+      const processedUrl = await processUploadedFile(file);
+      setPhotos(prev => {
+        if (prev.length >= selectedLayout.slots) return prev;
+        return [...prev, processedUrl];
+      });
+    }
     
+    // Trigger transition to Edit step if full
+    // (Using length + count logic to handle the async updates)
     if (photos.length + filesToProcess.length >= selectedLayout.slots) {
        setTimeout(() => {
          stopCamera();
          setStep('edit');
-       }, 800);
+       }, 1000); // Increased timeout slightly to allow processing
     }
   };
 

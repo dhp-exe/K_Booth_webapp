@@ -112,7 +112,7 @@ export default function PhotoEditor({
             <div className="pb-4 pt-1 flex justify-between items-end px-6">
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-widest opacity-60 font-bold" style={{ color: selectedFrame.text }}>
-                  {new Date().toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' })}
+                  {new Date().toLocaleDateString('en-GB', { year: '2-digit', month: '2-digit', day: 'numeric' })}
                 </span>
               </div>
               <div className="flex flex-col items-end">
