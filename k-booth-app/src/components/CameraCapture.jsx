@@ -26,7 +26,7 @@ export default function CameraCapture({
   const LayoutPreview = () => {
     const slotClass = "bg-gray-100 rounded-sm flex items-center justify-center text-gray-300 overflow-hidden relative";
     const activeClass = "ring-2 ring-pink-500 ring-offset-1"; 
-    const cardClass = "bg-white p-2 md:p-3 rounded-lg md:rounded-xl shadow-lg border border-gray-100 flex flex-col transition-all duration-300 h-auto";
+    const cardClass = "bg-white p-1.5 md:p-3 rounded-lg md:rounded-xl shadow-lg border border-gray-100 flex flex-col transition-all duration-300 h-auto";
 
     const renderSlot = (index, aspectClass) => {
         const hasPhoto = photos[index];
@@ -37,7 +37,7 @@ export default function CameraCapture({
                 {hasPhoto ? (
                     <img src={hasPhoto} alt={`shot-${index}`} className="w-full h-full object-cover" />
                 ) : (
-                    <ImageIcon size={14} strokeWidth={1.5} />
+                    <ImageIcon size={12} strokeWidth={1.5} /> /* Reduced icon size */
                 )}
             </div>
         );
@@ -46,24 +46,24 @@ export default function CameraCapture({
     switch (layout.id) {
       case 'strip4': 
         return (
-          <div className={`${cardClass} w-20 md:w-32`}>
-             <div className="flex-1 flex flex-col gap-1.5 md:gap-2">
+          <div className={`${cardClass} w-14 md:w-32`}>
+             <div className="flex-1 flex flex-col gap-1 md:gap-2">
                 {[...Array(4)].map((_, i) => renderSlot(i, 'aspect-[4/3]'))}
              </div>
           </div>
         );
       case 'grid2x2':
         return (
-          <div className={`${cardClass} w-32 md:w-48`}>
-            <div className="w-full grid grid-cols-2 gap-1.5 md:gap-2">
+          <div className={`${cardClass} w-24 md:w-48`}>
+            <div className="w-full grid grid-cols-2 gap-1 md:gap-2">
                {[...Array(4)].map((_, i) => renderSlot(i, 'aspect-[2/3]'))}
             </div>
           </div>
         );
       case 'grid3x2':
         return (
-          <div className={`${cardClass} w-32 md:w-48`}>
-             <div className="w-full grid grid-cols-2 gap-1.5 md:gap-2">
+          <div className={`${cardClass} w-24 md:w-48`}>
+             <div className="w-full grid grid-cols-2 gap-1 md:gap-2">
                 {[...Array(6)].map((_, i) => renderSlot(i, 'aspect-[2/3]'))}
              </div>
           </div>

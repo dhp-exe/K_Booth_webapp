@@ -139,7 +139,7 @@ export default function PhotoEditor({
           <div>
             <div className="flex items-center gap-1 md:gap-2 mb-2 text-gray-800 font-medium text-xs md:text-sm">
               <Sparkles size={14} className="text-pink-500" />
-              <span>Backdrop</span>
+              <span>Background (dhp dang test cnay)</span>
             </div>
             {/* Mobile: 2 Columns | Desktop: 4 Columns */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
