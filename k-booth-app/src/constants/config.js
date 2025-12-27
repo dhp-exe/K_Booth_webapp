@@ -1,8 +1,11 @@
+import bg1 from '../assets/backgrounds/bg_blue.jpg'; 
+import bg2 from '../assets/backgrounds/bg_darkRed.jpg'; 
+import bg3 from '../assets/backgrounds/bg_grey.jpg';
 export const FILTERS = [
   { id: 'normal', name: 'Original', css: 'none' },
   { id: 'bw', name: 'Mono', css: 'grayscale(100%) contrast(110%)' },
   { id: 'warm', name: 'Warm', css: 'sepia(40%) contrast(105%) brightness(105%)' },
-  { id: 'cool', name: 'Cool', css: 'hue-rotate(-10deg) sepia(20%) brightness(105%) opacity(0.9)' },
+  { id: 'cool', name: 'Cool', css: 'hue-rotate(-10deg) sepia(20%) brightness(105%)' },
   
   // --- NEW FILTERS ---
   
@@ -10,7 +13,7 @@ export const FILTERS = [
   { 
     id: 'vintage-film', 
     name: 'Vintage Film', 
-    css: 'sepia(40%) hue-rotate(30deg) contrast(85%) brightness(120%) saturate(80%)' 
+    css: 'sepia(10%) hue-rotate(10deg) contrast(85%) brightness(115%) saturate(80%)' 
   },
 
   // 2. Korean Style (Bright, Soft, slightly desaturated skin tones)
@@ -56,6 +59,19 @@ export const LAYOUTS = [
   { id: 'strip4', name: '2x6 Strip', slots: 4, cols: 1, label: 'Classic Strip' },
   { id: 'grid2x2', name: '4x6 Vertical', slots: 4, cols: 2, label: '4-Photo Frame' },
   { id: 'grid3x2', name: '2x3 Grid', slots: 6, cols: 2, label: '6-Photo Grid' },
+];
+
+export const BACKGROUNDS = [
+  { id: 'none', name: 'None', type: 'color', value: 'transparent' },
+  
+  // Color/Gradient Options (Optional)
+  { id: 'bg-pink', name: 'Pink', type: 'color', value: '#ffcfd2' },
+  { id: 'bg-deepBlue', name: 'Deep Blue', type: 'color', value: '#192841' },
+
+  // Your Local Image Assets
+  { id: 'bg-1', name: 'Style 1', type: 'image', value: bg1 },
+  { id: 'bg-2', name: 'Style 2', type: 'image', value: bg2 },
+  { id: 'bg-3', name: 'Style 3', type: 'image', value: bg3 },
 ];
 
 export const FRAME_COLORS = [

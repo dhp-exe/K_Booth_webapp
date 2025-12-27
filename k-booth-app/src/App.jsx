@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { LAYOUTS, FILTERS, FRAME_COLORS } from './constants/config';
 import { loadHtml2Canvas } from './utils/html2canvasLoader.js';
@@ -50,14 +51,20 @@ export default function App() {
 
   const startCamera = async () => {
     try {
+      // UPDATED: Request 1080p (Full HD) or 4K if available
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } 
+        video: { 
+          facingMode: 'user', 
+          width: { ideal: 1920, max: 3840 }, 
+          height: { ideal: 1080, max: 2160 } 
+        } 
       });
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
+      console.error("Camera Error:", err);
       alert("Unable to access camera. Please allow permissions.");
     }
   };
@@ -105,7 +112,7 @@ export default function App() {
     const isStrip = selectedLayout.id === 'strip4';
     const targetRatio = isStrip ? 4/3 : 2/3;
     
-    // Calculate Crop
+    // Calculate Crop based on actual video size (now likely 1920x1080)
     const videoRatio = video.videoWidth / video.videoHeight;
     let renderWidth, renderHeight, startX, startY;
 
@@ -127,6 +134,10 @@ export default function App() {
     // Draw & Flip
     context.translate(canvas.width, 0);
     context.scale(-1, 1);
+
+    // UPDATED: High quality smoothing settings
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
     
     context.drawImage(
       video,
@@ -134,7 +145,9 @@ export default function App() {
       0, 0, canvas.width, canvas.height
     );
     
-    const imageUrl = canvas.toDataURL('image/jpeg', 1.0);
+    // UPDATED: Use PNG (Lossless) instead of JPEG
+    const imageUrl = canvas.toDataURL('image/png');
+    
     const newPhotos = [...photos, imageUrl];
     setPhotos(newPhotos);
 
@@ -180,7 +193,7 @@ export default function App() {
     try {
       await loadHtml2Canvas();
       const canvas = await window.html2canvas(printRef.current, {
-        scale: 2,
+        scale: 4, // UPDATED: Higher scale for print quality (4x)
         useCORS: true,
         backgroundColor: null,
         onclone: (clonedDoc) => {
