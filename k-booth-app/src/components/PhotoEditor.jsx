@@ -51,17 +51,11 @@ export default function PhotoEditor({
   };
 
   return (
-    // 1. CHANGED: Always use flex-row (Left/Right), even on mobile
     <div className="flex flex-row h-[100dvh] bg-gray-100 overflow-hidden">
       
-      {/* 2. PREVIEW AREA (Left Side) */}
-      {/* Mobile: Takes ~60% width. Desktop: Takes flex-1 */}
+      {/* 1. PREVIEW AREA (Left Side) */}
       <div className="w-[60%] md:flex-1 relative bg-gray-200/50 overflow-hidden border-r border-gray-200">
-        
-        {/* Scrollable Container */}
         <div className="absolute inset-0 overflow-y-auto overflow-x-hidden flex flex-col p-4 md:p-6">
-            
-            {/* Center Content vertically */}
             <div className="my-auto w-full flex flex-col items-center gap-4 min-h-min">
             
                 {/* The Photobooth Strip */}
@@ -122,13 +116,12 @@ export default function PhotoEditor({
         </div>
       </div>
 
-      {/* 3. TOOLS PANEL (Right Side) */}
-      {/* Mobile: Takes ~40% width. Desktop: Fixed width 320px */}
+      {/* 2. TOOLS PANEL (Right Side) */}
       <div className="w-[40%] md:w-80 bg-white shadow-xl z-20 flex flex-col border-l border-gray-100">
         
         {/* Header */}
         <div className="p-3 md:p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-2 shrink-0">
-           <h3 className="font-bold text-gray-800 text-xs md:text-base text-center">Edit Strip</h3>
+           <h3 className="font-bold text-gray-800 text-xs md:text-base text-center">Edit</h3>
            <button onClick={onRestart} className="text-[10px] md:text-sm text-red-400 hover:text-red-600 font-medium">Reset</button>
         </div>
 
@@ -141,19 +134,33 @@ export default function PhotoEditor({
               <Sparkles size={14} className="text-pink-500" />
               <span>Background (dhp dang test cnay)</span>
             </div>
-            {/* Mobile: 2 Columns | Desktop: 4 Columns */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {BACKGROUNDS.map(bg => (
                  <button 
                    key={bg.id}
                    onClick={() => handleBackgroundChange(bg)}
-                   className={`aspect-square rounded-lg border-2 overflow-hidden relative transition-all
+                   // Added 'group' class to handle hover effects if needed later
+                   className={`aspect-square rounded-lg border-2 overflow-hidden relative transition-all group
                      ${selectedBg.id === bg.id ? 'border-pink-500 ring-2 ring-pink-200' : 'border-gray-100'}
                    `}
                    style={getBackgroundStyle(bg)}
                  >
-                    {bg.id === 'none' && <div className="w-full h-full bg-gray-100 flex items-center justify-center text-[9px] text-gray-400">Off</div>}
-                    {selectedBg.id === bg.id && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Check size={14} className="text-white"/></div>}
+                    {/* Centered 'Off' text for None option */}
+                    {bg.id === 'none' && (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-[9px] text-gray-400 mb-2">Off</div>
+                    )}
+                    
+                    {/* Checkmark Overlay */}
+                    {selectedBg.id === bg.id && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
+                            <Check size={14} className="text-white"/>
+                        </div>
+                    )}
+
+                    {/* NEW: Name Overlay (Identical style to Filters) */}
+                    <span className="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[9px] md:text-[10px] p-0.5 text-center backdrop-blur-sm z-20">
+                        {bg.name}
+                    </span>
                  </button>
               ))}
             </div>
@@ -165,7 +172,6 @@ export default function PhotoEditor({
               <Palette size={14} className="text-pink-500" />
               <span>Filters</span>
             </div>
-            {/* Mobile: 1 Column | Desktop: 3 Columns */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {filters.map(f => (
                 <button 
@@ -190,7 +196,6 @@ export default function PhotoEditor({
               <Layout size={14} className="text-pink-500" />
               <span>Frame</span>
             </div>
-            {/* Mobile: 3 Columns | Desktop: 5 Columns */}
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
               {frames.map(color => (
                 <button

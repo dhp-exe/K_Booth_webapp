@@ -6,50 +6,24 @@ export const FILTERS = [
   { id: 'bw', name: 'Mono', css: 'grayscale(100%) contrast(110%)' },
   { id: 'warm', name: 'Warm', css: 'sepia(40%) contrast(105%) brightness(105%)' },
   { id: 'cool', name: 'Cool', css: 'hue-rotate(-10deg) sepia(20%) brightness(105%)' },
-  
-  // --- NEW FILTERS ---
-  
-  // 1. Vintage Film (Greenish/Faded look like the flower reference)
   { 
-    id: 'vintage-film', 
-    name: 'Vintage Film', 
-    css: 'sepia(10%) hue-rotate(10deg) contrast(85%) brightness(115%) saturate(80%)' 
-  },
-
-  // 2. Korean Style (Bright, Soft, slightly desaturated skin tones)
-  { 
-    id: 'korean', 
+    id: 'Film 1', 
     name: 'Film 1', 
     css: 'brightness(110%) contrast(90%) saturate(90%) sepia(20%) hue-rotate(-10deg) blur(0.5px)' 
   },
-
-  // 3. Zootopia Vibe (Vibrant, Saturated, Cartoony Pop)
   { 
-    id: 'zootopia', 
+    id: 'Film 2', 
     name: 'Film 2', 
     css: 'saturate(120%) contrast(100%) brightness(105%) blur(0.3px)' 
   },
-  // 1. "Pure" - The standard 'Beauty Filter' (Bright + Smooth)
-  { 
-    id: 'beauty-pure', 
-    name: 'Pure', 
-    // Brightens the face, lowers contrast to hide shadows/blemishes, adds tiny softness
-    css: 'brightness(110%) contrast(95%) blur(0.3px)' 
-  },
-
-  // 2. "Glow" - Warm and Radiant (Healthy Skin Tone)
   { 
     id: 'beauty-glow', 
     name: 'Glow', 
-    // Slight sepia adds warmth, saturation adds color, brightness makes it shine
     css: 'brightness(112%) saturate(110%) sepia(10%) contrast(100%)' 
   },
-
-  // 3. "Clear" - High Definition (Sharp Features)
   { 
     id: 'beauty-clear', 
     name: 'Clear', 
-    // Higher contrast makes eyes/lashes pop, slight blue tint (hue-rotate) makes it look crisp
     css: 'contrast(115%) brightness(105%) hue-rotate(5deg) saturate(100%)' 
   },
 ];
@@ -66,21 +40,23 @@ export const BACKGROUNDS = [
   
   // Color/Gradient Options (Optional)
   { id: 'bg-pink', name: 'Pink', type: 'color', value: '#ffcfd2' },
+  { id: 'bg-film', name: 'Film', type: 'color', value: '#767257' },
+  { id: 'bg-grey', name: 'Dark Grey', type: 'color', value: '#3c3d42' },
   { id: 'bg-deepBlue', name: 'Deep Blue', type: 'color', value: '#192841' },
 
   // Your Local Image Assets
-  { id: 'bg-1', name: 'Style 1', type: 'image', value: bg1 },
-  { id: 'bg-2', name: 'Style 2', type: 'image', value: bg2 },
-  { id: 'bg-3', name: 'Style 3', type: 'image', value: bg3 },
+  { id: 'bg-1', name: 'Curtain 1', type: 'image', value: bg1 },
+  { id: 'bg-2', name: 'Stranger Things', type: 'image', value: bg2 },
+  { id: 'bg-3', name: 'Curtain 2', type: 'image', value: bg3 },
 ];
 
 export const FRAME_COLORS = [
   { id: 'white', name: 'White', hex: '#ffffff', text: '#000000' },
   { id: 'black', name: 'Black', hex: '#1a1a1a', text: '#ffffff' },
   { id: 'dark red', name:'Dark red', hex: '#530000', text: '#fff7f7ff'},
-  { id: 'pink', name: 'Pastel Pink', hex: '#ffa0d4ff', text: '#4c1029ff' },
-  { id: 'blue', name: 'Sky Blue', hex: '#a4cbe5ff', text: '#015b8cff' },
-  { id: 'cream', name: 'Cream', hex: '#fff0b5ff', text: '#b45309' },
+  { id: 'grey', name: 'Grey', hex: '#272934ff', text: '#d5d5d5ff' },
+  { id: 'blue', name: 'Sky Blue', hex: '#1071b2ff', text: '#060e12ff' },
+  { id: 'cream', name: 'Cream', hex: '#2b502bff', text: '#edededff' },
   { id: 'purple', name: 'Lilac', hex: '#341539', text: '#eedaffff' },
   { id: 'orange', name: 'Fox Orange', hex: '#857056ff', text: '#f6e1d8ff' },
 ];
