@@ -14,14 +14,11 @@ export default function App() {
   const [countdown, setCountdown] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
   const [selectedFrame, setSelectedFrame] = useState(FRAME_COLORS[0]);
-  // REMOVED: isDownloading state (now handled inside PhotoEditor)
   const [isAutoMode, setIsAutoMode] = useState(false);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  // REMOVED: printRef (no longer need to capture DOM)
 
-  // ... (Keep useEffect hooks for stream and auto-capture exactly as they are) ...
   useEffect(() => {
     return () => {
       if (stream) {
@@ -66,8 +63,6 @@ export default function App() {
     }
   };
 
-  // ... (Keep handleLayoutSelect, takePhoto, captureFrame, processUploadedFile, handleFileUpload) ...
-  // ... (I am omitting them here for brevity, but DO NOT DELETE them from your file) ...
   const handleLayoutSelect = (layout) => {
     setSelectedLayout(layout);
     setPhotos([]);
@@ -184,8 +179,6 @@ export default function App() {
     }
   };
 
-  // REMOVED: downloadStrip function completely!
-
   const restart = () => {
     stopCamera();
     setPhotos([]);
@@ -229,15 +222,13 @@ export default function App() {
         <PhotoEditor 
           photos={photos}
           layout={selectedLayout}
-          // REMOVED: printRef={printRef}
           selectedFilter={selectedFilter}
           filters={FILTERS}
           onFilterChange={setSelectedFilter}
           selectedFrame={selectedFrame}
           frames={FRAME_COLORS}
           onFrameChange={setSelectedFrame}
-          // REMOVED: onDownload={downloadStrip}
-          // REMOVED: isDownloading={isDownloading}
+
           onRestart={restart}
         />
       )}

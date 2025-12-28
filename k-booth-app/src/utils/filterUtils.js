@@ -17,7 +17,6 @@ const multiplyMatrices = (m1, m2) => {
       for (let col = 0; col < 5; col++) {
         let sum = 0;
         // Inner product of row from m1 and col from m2
-        // Note: The 5th column (offset) needs special handling effectively acting as a 5x5 multiplication
         for (let k = 0; k < 4; k++) {
           sum += m1[row * 5 + k] * m2[k * 5 + col];
         }
@@ -92,7 +91,6 @@ const multiplyMatrices = (m1, m2) => {
     const rad = (deg * Math.PI) / 180;
     const c = Math.cos(rad);
     const s = Math.sin(rad);
-    // Weights are fixed constants for hue rotation
     return new Float32Array([
       0.213 + 0.787*c - 0.213*s,  0.715 - 0.715*c - 0.715*s,  0.072 - 0.072*c + 0.928*s,  0, 0,
       0.213 - 0.213*c + 0.143*s,  0.715 + 0.285*c + 0.140*s,  0.072 - 0.072*c - 0.283*s,  0, 0,
@@ -124,9 +122,7 @@ const multiplyMatrices = (m1, m2) => {
       // Normalize values
       if (valStr.includes('%') && name !== 'hue-rotate') {
         val /= 100;
-      }
-      // If no unit provided for length/blur, it's typically px, but we skip blur here
-      
+      }      
       let nextM = null;
       switch (name) {
         case 'brightness': nextM = getBrightnessMatrix(val); break;
@@ -135,12 +131,9 @@ const multiplyMatrices = (m1, m2) => {
         case 'sepia': nextM = getSepiaMatrix(val); break;
         case 'saturate': nextM = getSaturateMatrix(val); break;
         case 'hue-rotate': 
-            // Handle 'deg', 'rad', etc. Default is deg if just number
             nextM = getHueRotateMatrix(val); 
             break;
         case 'blur': 
-            // Skipping blur for performance as discussed.
-            // If you REALLY need it, it requires a separate convolution pass.
             break;
       }
   
@@ -158,7 +151,6 @@ const multiplyMatrices = (m1, m2) => {
     const r1=m[0], r2=m[1], r3=m[2], r4=m[3], r5=m[4];
     const g1=m[5], g2=m[6], g3=m[7], g4=m[8], g5=m[9];
     const b1=m[10],b2=m[11],b3=m[12],b4=m[13],b5=m[14];
-    // We ignore Alpha row (a1..a5) because CSS filters usually don't shift alpha of opaque photos
   
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
