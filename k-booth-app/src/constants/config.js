@@ -9,12 +9,12 @@ export const FILTERS = [
   { 
     id: 'Film 1', 
     name: 'Film 1', 
-    css: 'brightness(110%) contrast(90%) saturate(90%) sepia(20%) hue-rotate(-10deg) blur(0.5px)' 
+    css: 'brightness(110%) contrast(90%) saturate(90%) sepia(20%) hue-rotate(-10deg) ' 
   },
   { 
     id: 'Film 2', 
     name: 'Film 2', 
-    css: 'saturate(120%) contrast(100%) brightness(105%) blur(0.3px)' 
+    css: 'saturate(120%) contrast(100%) brightness(105%) ' 
   },
   { 
     id: 'beauty-glow', 

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Download, RefreshCw, Palette, Layout, Check, Sparkles } from 'lucide-react';
 import { BACKGROUNDS } from '../constants/config';
 import { removeBackground } from '../utils/segmentation';
+import { applyFilterToCanvas } from '../utils/filterUtils';
 
 export default function PhotoEditor({
   photos,
@@ -24,13 +25,13 @@ export default function PhotoEditor({
   const [selectedBg, setSelectedBg] = useState(BACKGROUNDS[0]);
 
   const drawCoverWithFilter = (ctx, img, x, y, w, h, filterCss) => {
-    // Offscreen canvas
+    // 1. Create a temporary canvas (offscreen)
     const off = document.createElement('canvas');
     off.width = w;
     off.height = h;
     const offCtx = off.getContext('2d');
 
-    // Same cover logic you already use
+    // 2. Calculate "Object Fit: Cover" math (Keep your existing cropping logic)
     const imgRatio = img.width / img.height;
     const targetRatio = w / h;
     let sx, sy, sw, sh;
@@ -47,20 +48,19 @@ export default function PhotoEditor({
       sy = (img.height - sh) / 2;
     }
 
-    // Draw raw image
+    // 3. Draw the raw image onto the temp canvas
     offCtx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
 
-    // APPLY FILTER HERE (safe on mobile)
+    // 4. THE FIX: Manually manipulate the pixels using your new utility
+    // This "burns" the filter into the image data so it works on ALL devices.
     if (filterCss && filterCss !== 'none') {
-      offCtx.globalCompositeOperation = 'source-atop';
-      offCtx.filter = filterCss;
-      offCtx.drawImage(off, 0, 0);
-      offCtx.filter = 'none';
+      applyFilterToCanvas(offCtx, w, h, filterCss);
     }
 
-    // Draw baked pixels to main canvas
+    // 5. Draw the finished, filtered result onto the main canvas
     ctx.drawImage(off, x, y);
   };
+
   // --- 1. HELPER: Load Image from URL ---
   const loadImage = (src) => {
     return new Promise((resolve, reject) => {
@@ -174,20 +174,8 @@ export default function PhotoEditor({
             ctx.fillRect(x, y, photoWidth, photoHeight);
         }
 
-        // 2. Apply Filter & Draw Photo
-        if (selectedFilter.css !== 'none') {
-            ctx.filter = selectedFilter.css;
-        }
-        
-        // Draw the main person/photo
-        // If segmented, we draw normal (it's already transparent). 
-        // If original, we drawCover to crop it perfectly.
-        if (isSegmented) {
-             // Segmented images are usually full frame, so we drawCover to be safe
-             drawCoverWithFilter(ctx, img, x, y, photoWidth, photoHeight, selectedFilter.css);
-        } else {
-             drawCoverWithFilter(ctx, img, x, y, photoWidth, photoHeight, selectedFilter.css);
-        }
+        // 2. Draw the Photo with Filter Applied
+        drawCoverWithFilter(ctx, img, x, y, photoWidth, photoHeight, selectedFilter.css);
 
         ctx.restore(); // Reset filters and clip
       }
