@@ -147,7 +147,6 @@ export default function App() {
     }
   };
 
-  // Helper for Uploads
   const processUploadedFile = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -215,7 +214,6 @@ export default function App() {
     }
   };
 
-  // DOWNLOAD LOGIC
   const downloadStrip = async () => {
     if (!printRef.current) return;
     setIsDownloading(true);
@@ -223,7 +221,7 @@ export default function App() {
     try {
       await loadHtml2Canvas();
 
-      // Use 2x for Mobile to prevent crashes, 3x for Desktop
+      // Mobile = 2x scale (Safe), Desktop = 3x scale (HD)
       const isMobile = window.innerWidth < 768;
       const safeScale = isMobile ? 2 : 3;
 
@@ -232,34 +230,44 @@ export default function App() {
         useCORS: true, 
         allowTaint: true,
         backgroundColor: null,
-        
-        // 2. SCROLL FIX: Prevent the top being cut off
         scrollX: 0,
         scrollY: 0,
         windowWidth: document.documentElement.scrollWidth,
         windowHeight: document.documentElement.scrollHeight,
 
-        // 3. FILTER BAKING: Manually apply CSS filters to the canvas
+        // --- UPDATED FILTER LOGIC ---
         onclone: (clonedDoc) => {
           const images = clonedDoc.querySelectorAll('img');
           images.forEach((img) => {
             if (img.style.filter && img.style.filter !== 'none') {
               try {
+                // 1. Create a canvas to "bake" the filter
                 const canvas = document.createElement('canvas');
                 canvas.width = img.naturalWidth;
                 canvas.height = img.naturalHeight;
                 const ctx = canvas.getContext('2d');
                 
-                // Only apply if browser supports it
+                // 2. Apply filter if supported
                 if (typeof ctx.filter !== 'undefined') {
                     ctx.filter = img.style.filter;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    img.src = canvas.toDataURL('image/png');
-                    img.style.filter = 'none'; // Clear CSS filter so it's not double-applied
+                } else {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 }
+
+                // 3. KEY FIX: Replace the <img> tag with the <canvas> tag        
+                // Copy styles/classes to ensure layout matches
+                canvas.className = img.className;
+                canvas.style.cssText = img.style.cssText;
+                canvas.style.filter = 'none'; // Remove filter from container
+                
+                // Perform replacement
+                if (img.parentNode) {
+                    img.parentNode.replaceChild(canvas, img);
+                }
+                
               } catch (err) {
                 console.warn("Filter fail:", err);
-                // Continue without filter rather than crashing
               }
             }
           });
