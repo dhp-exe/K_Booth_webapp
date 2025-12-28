@@ -1,9 +1,8 @@
 // src/components/PhotoEditor.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Download, RefreshCw, Palette, Layout, Check, Sparkles } from 'lucide-react';
 import { BACKGROUNDS } from '../constants/config';
 import { removeBackground } from '../utils/segmentation';
-import { loadHtml2Canvas } from '../utils/html2canvasLoader';
 
 export default function PhotoEditor({
   photos,
@@ -20,7 +19,6 @@ export default function PhotoEditor({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedBg, setSelectedBg] = useState(BACKGROUNDS[0]);
-  const previewRef = useRef(null);
 
   // --- 1. HELPER: Load Image ---
   const loadImage = (src) => {
@@ -33,34 +31,21 @@ export default function PhotoEditor({
     });
   };
 
-  // --- HELPER: Bake Filter into Image ---
-  // Creates a small temporary canvas to apply the filter.
-  const bakeFilter = (img, filterCss) => {
-    if (!filterCss || filterCss === 'none') return img;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    
-    ctx.filter = filterCss;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
-    return canvas; // Returns the "baked" image as a canvas element
-  };
-
-  // --- HELPER: Draw with Object-Fit: Cover ---
+  // --- 2. HELPER: Draw with Object-Fit: Cover ---
+  // (Moved up so bakeFilter can use it)
   const drawCover = (ctx, img, x, y, w, h) => {
     const imgRatio = img.width / img.height;
     const targetRatio = w / h;
     let sx, sy, sw, sh;
 
     if (imgRatio > targetRatio) {
+      // Image is wider -> Crop sides
       sh = img.height;
       sw = img.height * targetRatio;
       sx = (img.width - sw) / 2;
       sy = 0;
     } else {
+      // Image is taller -> Crop top/bottom
       sw = img.width;
       sh = img.width / targetRatio;
       sx = 0;
@@ -70,7 +55,29 @@ export default function PhotoEditor({
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   };
 
-  // --- MAIN LOGIC: Generate High-Res Strip ---
+  // --- 3. HELPER: Bake Filter (OPTIMIZED) ---
+  // Now accepts target dimensions (w, h). 
+  // It resizes the image FIRST, then filters the small pixels.
+  const bakeFilter = (img, filterCss, w, h) => {
+    // Create canvas at the exact target size (e.g., 600x400) instead of full 4K
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    
+    // 1. Apply Filter
+    if (filterCss && filterCss !== 'none') {
+        ctx.filter = filterCss;
+    }
+
+    // 2. Draw Image (Cropped & Resized)
+    // We draw at 0,0 because this canvas is exactly the size of the slot
+    drawCover(ctx, img, 0, 0, w, h);
+    
+    return canvas;
+  };
+
+  // --- 4. MAIN LOGIC: Generate High-Res Strip ---
   const handleDownload = async () => {
     setIsSaving(true);
     try {
@@ -99,108 +106,69 @@ export default function PhotoEditor({
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Process Each Photo
-      // detect whether CanvasRenderingContext2D.filter is supported
-      const supportsCanvasFilter = (() => {
-        try {
-          const testCtx = document.createElement('canvas').getContext('2d');
-          return typeof testCtx.filter !== 'undefined';
-        } catch (e) {
-          return false;
-        }
-      })();
-
-      let html2canvasLib = null;
-      if (!supportsCanvasFilter) {
-        try {
-          html2canvasLib = await loadHtml2Canvas();
-        } catch (e) {
-          console.warn('Failed to load html2canvas fallback:', e);
-          html2canvasLib = null;
-        }
-      }
-
       for (let i = 0; i < photos.length; i++) {
         const colIndex = i % cols;
         const rowIndex = Math.floor(i / cols);
-
+        
         const x = PADDING + (colIndex * (photoWidth + GAP));
         const y = PADDING + (rowIndex * (photoHeight + GAP));
 
         const isSegmented = selectedBg.id !== 'none' && processedPhotos[i];
         const imgSrc = isSegmented ? processedPhotos[i] : photos[i];
+        
+        let img = await loadImage(imgSrc);
 
+        // 1. Draw Custom Background (if any)
+        // Note: Backgrounds are NOT filtered, so we draw them directly on main canvas
         ctx.save();
         ctx.beginPath();
         ctx.rect(x, y, photoWidth, photoHeight);
         ctx.clip();
 
-        // If canvas filter is supported, continue using bakeFilter for best quality
-        if (supportsCanvasFilter) {
-          // Draw Background (Underneath)
-          if (isSegmented) {
-            if (selectedBg.type === 'color' || selectedBg.type === 'gradient') {
-              if (selectedBg.value.includes('gradient')) {
+        if (isSegmented) {
+          if (selectedBg.type === 'color' || selectedBg.type === 'gradient') {
+            if (selectedBg.value.includes('gradient')) {
                 const grad = ctx.createLinearGradient(x, y + photoHeight, x, y);
-                grad.addColorStop(0, '#fbc2eb');
+                grad.addColorStop(0, '#fbc2eb'); 
                 grad.addColorStop(1, '#a6c1ee');
                 ctx.fillStyle = grad;
-              } else {
+            } else {
                 ctx.fillStyle = selectedBg.value;
-              }
-              ctx.fillRect(x, y, photoWidth, photoHeight);
-            } else if (selectedBg.type === 'image') {
-              const bgImg = await loadImage(selectedBg.value);
-              drawCover(ctx, bgImg, x, y, photoWidth, photoHeight);
             }
-          } else {
-            ctx.fillStyle = '#ffffff';
             ctx.fillRect(x, y, photoWidth, photoHeight);
+          } else if (selectedBg.type === 'image') {
+            const bgImg = await loadImage(selectedBg.value);
+            drawCover(ctx, bgImg, x, y, photoWidth, photoHeight);
           }
-
-          // Load and bake filter (if any)
-          let img = await loadImage(imgSrc);
-          if (selectedFilter.css !== 'none') {
-            img = bakeFilter(img, selectedFilter.css);
-          }
-
-          drawCover(ctx, img, x, y, photoWidth, photoHeight);
         } else {
-          // Fallback for browsers (mobile Safari) without canvas filter support
-          // Use html2canvas to capture the already-filtered DOM preview cell
-          if (html2canvasLib && previewRef && previewRef.current) {
-            try {
-              const cell = previewRef.current.querySelector(`[data-index=\"${i}\"]`);
-              if (cell) {
-                const captured = await html2canvasLib(cell, { backgroundColor: null, useCORS: true, scale: 2 });
-                // Draw background if not segmented (captured canvas already contains background when segmented)
-                if (!isSegmented) {
-                  ctx.fillStyle = '#ffffff';
-                  ctx.fillRect(x, y, photoWidth, photoHeight);
-                }
-                drawCover(ctx, captured, x, y, photoWidth, photoHeight);
-              } else {
-                // fallback to loading raw image without filter
-                const img = await loadImage(imgSrc);
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(x, y, photoWidth, photoHeight);
-                drawCover(ctx, img, x, y, photoWidth, photoHeight);
-              }
-            } catch (err) {
-              console.warn('html2canvas capture failed, drawing image raw', err);
-              const img = await loadImage(imgSrc);
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(x, y, photoWidth, photoHeight);
-              drawCover(ctx, img, x, y, photoWidth, photoHeight);
-            }
-          } else {
-            // No fallback available: draw raw image
-            const img = await loadImage(imgSrc);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(x, y, photoWidth, photoHeight);
-            drawCover(ctx, img, x, y, photoWidth, photoHeight);
-          }
+        }
+        ctx.restore();
+
+        // 2. PREPARE & DRAW THE PHOTO
+        // We pass the dimensions so 'bakeFilter' can shrink it down efficiently
+        let finalImageToDraw = img;
+        
+        if (selectedFilter.css !== 'none') {
+             // Bake the filter into a small, resized canvas
+             finalImageToDraw = bakeFilter(img, selectedFilter.css, photoWidth, photoHeight);
         }
 
+        // 3. Draw onto Main Strip
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, photoWidth, photoHeight);
+        ctx.clip();
+        
+        if (selectedFilter.css !== 'none') {
+            // If baked, it's already cropped/sized, so just draw it 1:1
+            ctx.drawImage(finalImageToDraw, x, y, photoWidth, photoHeight);
+        } else {
+            // If raw image, we still need to crop/resize it
+            drawCover(ctx, finalImageToDraw, x, y, photoWidth, photoHeight);
+        }
+        
         ctx.restore();
       }
 
@@ -263,7 +231,7 @@ export default function PhotoEditor({
   };
 
   const gridClass = layout.id === 'strip4' ? 'grid-cols-1' : 'grid-cols-2';
-  const containerWidth = layout.id === 'strip4' ? 'max-w-[200px] md:max-w-[300px]' : 'max-w-[320px] md:max-w-[480px]';
+  const containerWidth = layout.id === 'strip4' ? 'max-w-[140px] md:max-w-[300px]' : 'max-w-[200px] md:max-w-[480px]';
 
   return (
     <div className="flex flex-row h-[100dvh] bg-gray-100 overflow-hidden">
@@ -277,15 +245,14 @@ export default function PhotoEditor({
                     className={`relative shadow-2xl overflow-hidden transition-colors duration-300 ${containerWidth} shrink-0`}
                     style={{ backgroundColor: selectedFrame.hex }}
                 >
-                    <div className={`p-2 md:p-6 grid ${gridClass} gap-1.5 md:gap-4`} ref={previewRef}>
+                    <div className={`p-2 md:p-6 grid ${gridClass} gap-1.5 md:gap-4`}>
                     {photos.map((originalPhoto, idx) => {
                         const showTransparent = selectedBg.id !== 'none' && processedPhotos[idx];
                         const displayPhoto = showTransparent ? processedPhotos[idx] : originalPhoto;
 
                         return (
                         <div 
-                          key={idx} 
-                          data-index={idx}
+                            key={idx} 
                             className={`relative overflow-hidden shadow-inner flex items-center justify-center
                             ${layout.id === 'strip4' ? 'aspect-[4/3]' : 'aspect-[2/3]'}
                             ${showTransparent ? '' : 'bg-gray-100'} 
@@ -344,7 +311,7 @@ export default function PhotoEditor({
           <div>
             <div className="flex items-center gap-1 md:gap-2 mb-2 text-gray-800 font-medium text-xs md:text-sm">
               <Sparkles size={14} className="text-pink-500" />
-              <span>Background</span>
+              <span>Backdrop</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {BACKGROUNDS.map(bg => (
@@ -425,7 +392,6 @@ export default function PhotoEditor({
               <><Download size={16} /> Save Photo</>
             )}
           </button>
-          <p className="text-center text-gray-400 text-xs mt-3">Made by dhp.</p>
         </div>
       </div>
     </div>
