@@ -34,46 +34,6 @@ Follow these instructions to set up the project locally on your machine.
 
 * Node.js (v16 or higher) installed.
 
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/your-username/k-booth-app.git](https://github.com/your-username/k-booth-app.git)
-    cd k-booth-app
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-3.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-
-4.  **Open in browser:**
-    Visit the URL shown in your terminal (usually `http://localhost:5173`).
-
-## 📦 Deployment
-
-This project is configured for easy deployment to **GitHub Pages**.
-
-1.  **Update Configuration:**
-    Ensure your `vite.config.js` has the correct base path matching your repository name:
-    ```javascript
-    base: '/repo-name/',
-    ```
-
-2.  **Deploy Command:**
-    Run the deploy script to build and push to the `gh-pages` branch:
-    ```bash
-    npm run deploy
-    ```
-
-3.  **Verify:**
-    Go to your GitHub Repository > Settings > Pages and ensure the source is set to the `gh-pages` branch.
-
 ## 📂 Project Structure
 
 ```text
