@@ -39,8 +39,8 @@ export default function PhotoEditor({
     if (!filterCss || filterCss === 'none') return img;
 
     const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
     const ctx = canvas.getContext('2d');
     
     ctx.filter = filterCss;
