@@ -7,20 +7,61 @@ import { removeBackground } from '../utils/segmentation';
 export default function PhotoEditor({
   photos,
   layout,
+  // printRef, // REMOVED: No longer needed
   selectedFilter,
   filters,
   onFilterChange,
   selectedFrame,
   frames,
   onFrameChange,
+  // onDownload, // REMOVED: We handle it internally now
+  // isDownloading, // REMOVED
   onRestart
 }) {
   const [processedPhotos, setProcessedPhotos] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Local loading state
   const [selectedBg, setSelectedBg] = useState(BACKGROUNDS[0]);
 
-  // --- 1. HELPER: Load Image ---
+  const drawCoverWithFilter = (ctx, img, x, y, w, h, filterCss) => {
+    // Offscreen canvas
+    const off = document.createElement('canvas');
+    off.width = w;
+    off.height = h;
+    const offCtx = off.getContext('2d');
+
+    // Same cover logic you already use
+    const imgRatio = img.width / img.height;
+    const targetRatio = w / h;
+    let sx, sy, sw, sh;
+
+    if (imgRatio > targetRatio) {
+      sh = img.height;
+      sw = img.height * targetRatio;
+      sx = (img.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = img.width;
+      sh = img.width / targetRatio;
+      sx = 0;
+      sy = (img.height - sh) / 2;
+    }
+
+    // Draw raw image
+    offCtx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+
+    // APPLY FILTER HERE (safe on mobile)
+    if (filterCss && filterCss !== 'none') {
+      offCtx.globalCompositeOperation = 'source-atop';
+      offCtx.filter = filterCss;
+      offCtx.drawImage(off, 0, 0);
+      offCtx.filter = 'none';
+    }
+
+    // Draw baked pixels to main canvas
+    ctx.drawImage(off, x, y);
+  };
+  // --- 1. HELPER: Load Image from URL ---
   const loadImage = (src) => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -31,21 +72,20 @@ export default function PhotoEditor({
     });
   };
 
-  // --- 2. HELPER: Draw with Object-Fit: Cover ---
-  // (Moved up so bakeFilter can use it)
+  // --- 2. HELPER: Draw Image with "Object-Fit: Cover" ---
   const drawCover = (ctx, img, x, y, w, h) => {
     const imgRatio = img.width / img.height;
     const targetRatio = w / h;
     let sx, sy, sw, sh;
 
     if (imgRatio > targetRatio) {
-      // Image is wider -> Crop sides
+      // Image is wider than slot -> Crop sides
       sh = img.height;
       sw = img.height * targetRatio;
       sx = (img.width - sw) / 2;
       sy = 0;
     } else {
-      // Image is taller -> Crop top/bottom
+      // Image is taller than slot -> Crop top/bottom
       sw = img.width;
       sh = img.width / targetRatio;
       sx = 0;
@@ -55,36 +95,16 @@ export default function PhotoEditor({
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   };
 
-  // --- 3. HELPER: Bake Filter (OPTIMIZED) ---
-  // Now accepts target dimensions (w, h). 
-  // It resizes the image FIRST, then filters the small pixels.
-  const bakeFilter = (img, filterCss, w, h) => {
-    // Create canvas at the exact target size (e.g., 600x400) instead of full 4K
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    
-    // 1. Apply Filter
-    if (filterCss && filterCss !== 'none') {
-        ctx.filter = filterCss;
-    }
-
-    // 2. Draw Image (Cropped & Resized)
-    // We draw at 0,0 because this canvas is exactly the size of the slot
-    drawCover(ctx, img, 0, 0, w, h);
-    
-    return canvas;
-  };
-
-  // --- 4. MAIN LOGIC: Generate High-Res Strip ---
+  // --- 3. MAIN LOGIC: Generate High-Res Strip ---
   const handleDownload = async () => {
     setIsSaving(true);
     try {
+      // A. Setup Canvas (High Resolution)
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      const STRIP_WIDTH = 1200; 
+      // Configuration based on Layout
+      const STRIP_WIDTH = 1200; // High quality width
       const PADDING = 60;
       const GAP = 30;
       const FOOTER_HEIGHT = 160;
@@ -92,8 +112,9 @@ export default function PhotoEditor({
       let photoWidth, photoHeight, totalHeight;
       const cols = layout.id === 'strip4' ? 1 : 2;
       const rows = layout.id === 'strip4' ? 4 : (layout.id === 'grid3x2' ? 3 : 2);
-      const aspectRatio = layout.id === 'strip4' ? 4/3 : 2/3;
+      const aspectRatio = layout.id === 'strip4' ? 4/3 : 2/3; // Slot aspect ratio
 
+      // Calculate Dimensions
       photoWidth = (STRIP_WIDTH - (PADDING * 2) - (GAP * (cols - 1))) / cols;
       photoHeight = photoWidth / aspectRatio;
       totalHeight = PADDING + (rows * photoHeight) + ((rows - 1) * GAP) + FOOTER_HEIGHT + PADDING;
@@ -101,33 +122,40 @@ export default function PhotoEditor({
       canvas.width = STRIP_WIDTH;
       canvas.height = totalHeight;
 
-      // Draw Frame Background
+      // B. Draw Frame (Background Color)
       ctx.fillStyle = selectedFrame.hex;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Process Each Photo
+      // C. Process & Draw Each Photo
       for (let i = 0; i < photos.length; i++) {
+        // Calculate Grid Position
         const colIndex = i % cols;
         const rowIndex = Math.floor(i / cols);
         
         const x = PADDING + (colIndex * (photoWidth + GAP));
         const y = PADDING + (rowIndex * (photoHeight + GAP));
 
+        // Determine which image source to use (Segmented vs Original)
         const isSegmented = selectedBg.id !== 'none' && processedPhotos[i];
         const imgSrc = isSegmented ? processedPhotos[i] : photos[i];
         
-        let img = await loadImage(imgSrc);
+        // Load the main image
+        const img = await loadImage(imgSrc);
 
-        // 1. Draw Custom Background (if any)
-        // Note: Backgrounds are NOT filtered, so we draw them directly on main canvas
+        // Save Context for Clipping/Filters
         ctx.save();
+        
+        // Create Clipping Path (Rounded corners slightly for polish)
         ctx.beginPath();
         ctx.rect(x, y, photoWidth, photoHeight);
         ctx.clip();
 
+        // 1. Draw Custom Background (if any)
         if (isSegmented) {
           if (selectedBg.type === 'color' || selectedBg.type === 'gradient') {
+            // Check for Gradient
             if (selectedBg.value.includes('gradient')) {
+                // Simple gradient approximation (Pink/Blue example)
                 const grad = ctx.createLinearGradient(x, y + photoHeight, x, y);
                 grad.addColorStop(0, '#fbc2eb'); 
                 grad.addColorStop(1, '#a6c1ee');
@@ -141,40 +169,33 @@ export default function PhotoEditor({
             drawCover(ctx, bgImg, x, y, photoWidth, photoHeight);
           }
         } else {
+            // Default white background behind standard photos
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(x, y, photoWidth, photoHeight);
         }
-        ctx.restore();
 
-        // 2. PREPARE & DRAW THE PHOTO
-        // We pass the dimensions so 'bakeFilter' can shrink it down efficiently
-        let finalImageToDraw = img;
-        
+        // 2. Apply Filter & Draw Photo
         if (selectedFilter.css !== 'none') {
-             // Bake the filter into a small, resized canvas
-             finalImageToDraw = bakeFilter(img, selectedFilter.css, photoWidth, photoHeight);
+            ctx.filter = selectedFilter.css;
         }
-
-        // 3. Draw onto Main Strip
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, photoWidth, photoHeight);
-        ctx.clip();
         
-        if (selectedFilter.css !== 'none') {
-            // If baked, it's already cropped/sized, so just draw it 1:1
-            ctx.drawImage(finalImageToDraw, x, y, photoWidth, photoHeight);
+        // Draw the main person/photo
+        // If segmented, we draw normal (it's already transparent). 
+        // If original, we drawCover to crop it perfectly.
+        if (isSegmented) {
+             // Segmented images are usually full frame, so we drawCover to be safe
+             drawCoverWithFilter(ctx, img, x, y, photoWidth, photoHeight, selectedFilter.css);
         } else {
-            // If raw image, we still need to crop/resize it
-            drawCover(ctx, finalImageToDraw, x, y, photoWidth, photoHeight);
+             drawCoverWithFilter(ctx, img, x, y, photoWidth, photoHeight, selectedFilter.css);
         }
-        
-        ctx.restore();
+
+        ctx.restore(); // Reset filters and clip
       }
 
-      // Draw Footer
+      // D. Draw Footer Text
       const footerY = totalHeight - PADDING - (FOOTER_HEIGHT / 2);
       
+      // Date (Left)
       ctx.fillStyle = selectedFrame.text;
       ctx.font = 'bold 32px sans-serif';
       ctx.textAlign = 'left';
@@ -182,16 +203,17 @@ export default function PhotoEditor({
       const dateStr = new Date().toLocaleDateString('en-GB', { year: '2-digit', month: '2-digit', day: 'numeric' });
       ctx.fillText(dateStr.toUpperCase(), PADDING, footerY);
 
+      // Logo (Right)
       ctx.textAlign = 'right';
-      ctx.font = 'bold 60px sans-serif';
+      ctx.font = 'bold 60px sans-serif'; // Bigger K-BOOTH
       ctx.fillText('K-BOOTH', STRIP_WIDTH - PADDING, footerY - 15);
       
-      ctx.font = '30px sans-serif';
+      ctx.font = '30px sans-serif'; // Smaller tagline
       ctx.globalAlpha = 0.7;
       ctx.fillText('memory archive', STRIP_WIDTH - PADDING, footerY + 25);
       ctx.globalAlpha = 1.0;
 
-      // Export
+      // E. Export
       const dataUrl = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.download = `k-booth-${Date.now()}.png`;
@@ -206,6 +228,7 @@ export default function PhotoEditor({
     }
   };
 
+  // ... (Keep existing handleBackgroundChange, getBackgroundStyle, etc.)
   const handleBackgroundChange = async (bg) => {
     setSelectedBg(bg);
     if (bg.id !== 'none' && Object.keys(processedPhotos).length === 0) {
@@ -230,8 +253,9 @@ export default function PhotoEditor({
     return {};
   };
 
+  // Reused consts for render
   const gridClass = layout.id === 'strip4' ? 'grid-cols-1' : 'grid-cols-2';
-  const containerWidth = layout.id === 'strip4' ? 'max-w-[140px] md:max-w-[300px]' : 'max-w-[200px] md:max-w-[480px]';
+  const containerWidth = layout.id === 'strip4' ? 'max-w-[200px] md:max-w-[300px]' : 'max-w-[320px] md:max-w-[480px]';
 
   return (
     <div className="flex flex-row h-[100dvh] bg-gray-100 overflow-hidden">
@@ -241,7 +265,9 @@ export default function PhotoEditor({
         <div className="absolute inset-0 overflow-y-auto overflow-x-hidden flex flex-col p-4 md:p-6">
             <div className="my-auto w-full flex flex-col items-center gap-4 min-h-min">
             
+                {/* Visual Preview (React Rendering) */}
                 <div 
+                    // ref={printRef} // REMOVED
                     className={`relative shadow-2xl overflow-hidden transition-colors duration-300 ${containerWidth} shrink-0`}
                     style={{ backgroundColor: selectedFrame.hex }}
                 >
@@ -306,12 +332,14 @@ export default function PhotoEditor({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-6">
+          {/* ... (Keep Backgrounds, Filters, Frames sections EXACTLY as they were) ... */}
+          {/* ... (I'm skipping pasting the map loops here to save space, but DO NOT delete them) ... */}
           
           {/* Backgrounds */}
           <div>
             <div className="flex items-center gap-1 md:gap-2 mb-2 text-gray-800 font-medium text-xs md:text-sm">
               <Sparkles size={14} className="text-pink-500" />
-              <span>Backdrop</span>
+              <span>Backdground</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {BACKGROUNDS.map(bg => (
@@ -380,9 +408,10 @@ export default function PhotoEditor({
           </div>
         </div>
 
+        {/* Footer Actions */}
         <div className="p-3 md:p-5 bg-gray-50 border-t border-gray-100 shrink-0 safe-pb">
           <button 
-            onClick={handleDownload}
+            onClick={handleDownload} // UPDATED to use internal handler
             disabled={isSaving || isProcessing}
             className="w-full bg-pink-500 active:bg-pink-600 text-white py-3 rounded-xl font-bold text-xs md:text-lg shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
           >
@@ -392,6 +421,7 @@ export default function PhotoEditor({
               <><Download size={16} /> Save Photo</>
             )}
           </button>
+          <p className="text-center text-gray-400 text-xs mt-3">Made by dhp.</p>
         </div>
       </div>
     </div>
