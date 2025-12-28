@@ -221,9 +221,10 @@ export default function App() {
     try {
       await loadHtml2Canvas();
 
-      // Mobile = 2x scale (Safe), Desktop = 3x scale (HD)
-      const isMobile = window.innerWidth < 768;
-      const safeScale = isMobile ? 2 : 3;
+      // --- FIX 1: BETTER QUALITY ---
+      // Use scale 3 for everyone. This gives good print quality without usually crashing newer phones.
+      // If users with very old phones complain about crashing, we can lower this to 2.5
+      const safeScale = 3;
 
       const canvas = await window.html2canvas(printRef.current, {
         scale: safeScale,
@@ -235,33 +236,29 @@ export default function App() {
         windowWidth: document.documentElement.scrollWidth,
         windowHeight: document.documentElement.scrollHeight,
 
-        // --- UPDATED FILTER LOGIC ---
+        // --- FIX 2: MOBILE FILTER SUPPORT ---
         onclone: (clonedDoc) => {
           const images = clonedDoc.querySelectorAll('img');
           images.forEach((img) => {
             if (img.style.filter && img.style.filter !== 'none') {
               try {
-                // 1. Create a canvas to "bake" the filter
+                // Create a canvas to "bake" the filter
                 const canvas = document.createElement('canvas');
                 canvas.width = img.naturalWidth;
                 canvas.height = img.naturalHeight;
                 const ctx = canvas.getContext('2d');
                 
-                // 2. Apply filter if supported
+                // Draw image with filter
                 if (typeof ctx.filter !== 'undefined') {
                     ctx.filter = img.style.filter;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 } else {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 }
-
-                // 3. KEY FIX: Replace the <img> tag with the <canvas> tag        
-                // Copy styles/classes to ensure layout matches
                 canvas.className = img.className;
                 canvas.style.cssText = img.style.cssText;
-                canvas.style.filter = 'none'; // Remove filter from container
-                
-                // Perform replacement
+                canvas.style.filter = 'none'; 
+
                 if (img.parentNode) {
                     img.parentNode.replaceChild(canvas, img);
                 }
