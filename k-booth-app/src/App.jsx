@@ -1,13 +1,12 @@
 // src/App.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { LAYOUTS, FILTERS, FRAME_COLORS } from './constants/config';
-import { loadHtml2Canvas } from './utils/html2canvasLoader.js';
+// REMOVED: import { loadHtml2Canvas } ...
 import LayoutSelection from './components/LayoutSelection';
 import CameraCapture from './components/CameraCapture';
 import PhotoEditor from './components/PhotoEditor';
 
 export default function App() {
-  // State
   const [step, setStep] = useState('layout'); 
   const [selectedLayout, setSelectedLayout] = useState(LAYOUTS[0]);
   const [photos, setPhotos] = useState([]);
@@ -15,14 +14,14 @@ export default function App() {
   const [countdown, setCountdown] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
   const [selectedFrame, setSelectedFrame] = useState(FRAME_COLORS[0]);
-  const [isDownloading, setIsDownloading] = useState(false);
+  // REMOVED: isDownloading state (now handled inside PhotoEditor)
   const [isAutoMode, setIsAutoMode] = useState(false);
 
-  // Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const printRef = useRef(null);
+  // REMOVED: printRef (no longer need to capture DOM)
 
+  // ... (Keep useEffect hooks for stream and auto-capture exactly as they are) ...
   useEffect(() => {
     return () => {
       if (stream) {
@@ -40,8 +39,6 @@ export default function App() {
     }
   }, [photos, isAutoMode, step]);
 
-
-  // --- Actions ---
 
   const startCamera = async () => {
     try {
@@ -69,6 +66,8 @@ export default function App() {
     }
   };
 
+  // ... (Keep handleLayoutSelect, takePhoto, captureFrame, processUploadedFile, handleFileUpload) ...
+  // ... (I am omitting them here for brevity, but DO NOT DELETE them from your file) ...
   const handleLayoutSelect = (layout) => {
     setSelectedLayout(layout);
     setPhotos([]);
@@ -78,10 +77,8 @@ export default function App() {
 
   const takePhoto = () => {
     if (countdown !== null) return;
-
     let count = 3;
     setCountdown(count);
-    
     const timer = setInterval(() => {
       count--;
       if (count === 0) {
@@ -96,17 +93,13 @@ export default function App() {
 
   const captureFrame = () => {
     if (!videoRef.current || !canvasRef.current) return;
-    
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-
     const isStrip = selectedLayout.id === 'strip4';
     const targetRatio = isStrip ? 4/3 : 2/3;
-    
     const videoRatio = video.videoWidth / video.videoHeight;
     let renderWidth, renderHeight, startX, startY;
-
     if (videoRatio > targetRatio) {
       renderHeight = video.videoHeight;
       renderWidth = video.videoHeight * targetRatio;
@@ -118,26 +111,16 @@ export default function App() {
       startX = 0;
       startY = (video.videoHeight - renderHeight) / 2;
     }
-
     canvas.width = renderWidth;
     canvas.height = renderHeight;
-    
     context.translate(canvas.width, 0);
     context.scale(-1, 1);
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
-    
-    context.drawImage(
-      video,
-      startX, startY, renderWidth, renderHeight,
-      0, 0, canvas.width, canvas.height
-    );
-    
+    context.drawImage(video, startX, startY, renderWidth, renderHeight, 0, 0, canvas.width, canvas.height);
     const imageUrl = canvas.toDataURL('image/png');
-    
     const newPhotos = [...photos, imageUrl];
     setPhotos(newPhotos);
-
     if (newPhotos.length >= selectedLayout.slots) {
       setTimeout(() => {
         stopCamera();
@@ -155,13 +138,10 @@ export default function App() {
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          
           const isStrip = selectedLayout.id === 'strip4';
           const targetRatio = isStrip ? 4/3 : 2/3;
-
           const imgRatio = img.width / img.height;
           let renderWidth, renderHeight, startX, startY;
-
           if (imgRatio > targetRatio) {
             renderHeight = img.height;
             renderWidth = img.height * targetRatio;
@@ -173,16 +153,9 @@ export default function App() {
             startX = 0;
             startY = (img.height - renderHeight) / 2;
           }
-
           canvas.width = renderWidth;
           canvas.height = renderHeight;
-
-          ctx.drawImage(
-            img,
-            startX, startY, renderWidth, renderHeight,
-            0, 0, canvas.width, canvas.height
-          );
-
+          ctx.drawImage(img, startX, startY, renderWidth, renderHeight, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/png'));
         };
         img.src = e.target.result;
@@ -194,10 +167,8 @@ export default function App() {
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-
     const remainingSlots = selectedLayout.slots - photos.length;
     const filesToProcess = files.slice(0, remainingSlots);
-
     for (const file of filesToProcess) {
       const processedUrl = await processUploadedFile(file);
       setPhotos(prev => {
@@ -205,7 +176,6 @@ export default function App() {
         return [...prev, processedUrl];
       });
     }
-    
     if (photos.length + filesToProcess.length >= selectedLayout.slots) {
        setTimeout(() => {
          stopCamera();
@@ -214,74 +184,7 @@ export default function App() {
     }
   };
 
-  const downloadStrip = async () => {
-    if (!printRef.current) return;
-    setIsDownloading(true);
-
-    try {
-      await loadHtml2Canvas();
-
-      // --- FIX 1: BETTER QUALITY ---
-      // Use scale 3 for everyone. This gives good print quality without usually crashing newer phones.
-      // If users with very old phones complain about crashing, we can lower this to 2.5
-      const safeScale = 3;
-
-      const canvas = await window.html2canvas(printRef.current, {
-        scale: safeScale,
-        useCORS: true, 
-        allowTaint: true,
-        backgroundColor: null,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: document.documentElement.scrollWidth,
-        windowHeight: document.documentElement.scrollHeight,
-
-        // --- FIX 2: MOBILE FILTER SUPPORT ---
-        onclone: (clonedDoc) => {
-          const images = clonedDoc.querySelectorAll('img');
-          images.forEach((img) => {
-            if (img.style.filter && img.style.filter !== 'none') {
-              try {
-                // Create a canvas to "bake" the filter
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                
-                // Draw image with filter
-                if (typeof ctx.filter !== 'undefined') {
-                    ctx.filter = img.style.filter;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                } else {
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                }
-                canvas.className = img.className;
-                canvas.style.cssText = img.style.cssText;
-                canvas.style.filter = 'none'; 
-
-                if (img.parentNode) {
-                    img.parentNode.replaceChild(canvas, img);
-                }
-                
-              } catch (err) {
-                console.warn("Filter fail:", err);
-              }
-            }
-          });
-        }
-      });
-      
-      const link = document.createElement('a');
-      link.download = `k-booth-${new Date().getTime()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (err) {
-      console.error("Download failed", err);
-      alert("Could not save photo. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  // REMOVED: downloadStrip function completely!
 
   const restart = () => {
     stopCamera();
@@ -326,15 +229,15 @@ export default function App() {
         <PhotoEditor 
           photos={photos}
           layout={selectedLayout}
-          printRef={printRef}
+          // REMOVED: printRef={printRef}
           selectedFilter={selectedFilter}
           filters={FILTERS}
           onFilterChange={setSelectedFilter}
           selectedFrame={selectedFrame}
           frames={FRAME_COLORS}
           onFrameChange={setSelectedFrame}
-          onDownload={downloadStrip}
-          isDownloading={isDownloading}
+          // REMOVED: onDownload={downloadStrip}
+          // REMOVED: isDownloading={isDownloading}
           onRestart={restart}
         />
       )}
