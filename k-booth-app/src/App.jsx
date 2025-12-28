@@ -8,7 +8,7 @@ import PhotoEditor from './components/PhotoEditor';
 
 export default function App() {
   // State
-  const [step, setStep] = useState('layout'); // layout -> capture -> edit
+  const [step, setStep] = useState('layout'); 
   const [selectedLayout, setSelectedLayout] = useState(LAYOUTS[0]);
   const [photos, setPhotos] = useState([]);
   const [stream, setStream] = useState(null);
@@ -16,8 +16,6 @@ export default function App() {
   const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
   const [selectedFrame, setSelectedFrame] = useState(FRAME_COLORS[0]);
   const [isDownloading, setIsDownloading] = useState(false);
-  
-  // --- NEW: Auto Capture State ---
   const [isAutoMode, setIsAutoMode] = useState(false);
 
   // Refs
@@ -25,7 +23,6 @@ export default function App() {
   const canvasRef = useRef(null);
   const printRef = useRef(null);
 
-  // Cleanup stream on unmount
   useEffect(() => {
     return () => {
       if (stream) {
@@ -34,11 +31,8 @@ export default function App() {
     };
   }, [stream]);
 
-  // --- NEW: Auto Capture Logic ---
-  // Watch for changes in 'photos'. If in Auto Mode and slots aren't full, trigger next shot.
   useEffect(() => {
     if (isAutoMode && step === 'capture' && photos.length > 0 && photos.length < selectedLayout.slots) {
-       // Wait 1.5 seconds so user can see their last shot, then start countdown again
        const timer = setTimeout(() => {
            takePhoto();
        }, 1500);
@@ -51,7 +45,6 @@ export default function App() {
 
   const startCamera = async () => {
     try {
-      // UPDATED: Request 1080p (Full HD) or 4K if available
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'user', 
@@ -108,11 +101,9 @@ export default function App() {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
 
-    // Standardize Aspect Ratios: Strip = 4:3 (Landscape) | Grid = 2:3 (Portrait)
     const isStrip = selectedLayout.id === 'strip4';
     const targetRatio = isStrip ? 4/3 : 2/3;
     
-    // Calculate Crop based on actual video size (now likely 1920x1080)
     const videoRatio = video.videoWidth / video.videoHeight;
     let renderWidth, renderHeight, startX, startY;
 
@@ -131,11 +122,8 @@ export default function App() {
     canvas.width = renderWidth;
     canvas.height = renderHeight;
     
-    // Draw & Flip
     context.translate(canvas.width, 0);
     context.scale(-1, 1);
-
-    // UPDATED: High quality smoothing settings
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
     
@@ -145,7 +133,6 @@ export default function App() {
       0, 0, canvas.width, canvas.height
     );
     
-    // UPDATED: Use PNG (Lossless) instead of JPEG
     const imageUrl = canvas.toDataURL('image/png');
     
     const newPhotos = [...photos, imageUrl];
@@ -155,11 +142,12 @@ export default function App() {
       setTimeout(() => {
         stopCamera();
         setStep('edit');
-        setIsAutoMode(false); // Reset auto mode when finished
+        setIsAutoMode(false); 
       }, 500);
     }
   };
 
+  // Helper for Uploads
   const processUploadedFile = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -169,33 +157,27 @@ export default function App() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // 1. Determine Target Ratio (Same as Camera logic)
           const isStrip = selectedLayout.id === 'strip4';
           const targetRatio = isStrip ? 4/3 : 2/3;
 
-          // 2. Calculate Center Crop
           const imgRatio = img.width / img.height;
           let renderWidth, renderHeight, startX, startY;
 
           if (imgRatio > targetRatio) {
-            // Image is wider than target -> Crop sides
             renderHeight = img.height;
             renderWidth = img.height * targetRatio;
             startX = (img.width - renderWidth) / 2;
             startY = 0;
           } else {
-            // Image is taller than target -> Crop top/bottom
             renderWidth = img.width;
             renderHeight = img.width / targetRatio;
             startX = 0;
             startY = (img.height - renderHeight) / 2;
           }
 
-          // 3. Set Canvas Size (Keep original high resolution)
           canvas.width = renderWidth;
           canvas.height = renderHeight;
 
-          // 4. Draw (No Mirroring for Uploads)
           ctx.drawImage(
             img,
             startX, startY, renderWidth, renderHeight,
@@ -217,7 +199,6 @@ export default function App() {
     const remainingSlots = selectedLayout.slots - photos.length;
     const filesToProcess = files.slice(0, remainingSlots);
 
-    // Process files one by one to ensure they are cropped
     for (const file of filesToProcess) {
       const processedUrl = await processUploadedFile(file);
       setPhotos(prev => {
@@ -226,26 +207,39 @@ export default function App() {
       });
     }
     
-    // Trigger transition to Edit step if full
-    // (Using length + count logic to handle the async updates)
     if (photos.length + filesToProcess.length >= selectedLayout.slots) {
        setTimeout(() => {
          stopCamera();
          setStep('edit');
-       }, 1000); // Increased timeout slightly to allow processing
+       }, 1000);
     }
   };
 
+  // DOWNLOAD LOGIC
   const downloadStrip = async () => {
     if (!printRef.current) return;
     setIsDownloading(true);
 
     try {
       await loadHtml2Canvas();
+
+      // Use 2x for Mobile to prevent crashes, 3x for Desktop
+      const isMobile = window.innerWidth < 768;
+      const safeScale = isMobile ? 2 : 3;
+
       const canvas = await window.html2canvas(printRef.current, {
-        scale: 4, // UPDATED: Higher scale for print quality (4x)
-        useCORS: true,
+        scale: safeScale,
+        useCORS: true, 
+        allowTaint: true,
         backgroundColor: null,
+        
+        // 2. SCROLL FIX: Prevent the top being cut off
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight,
+
+        // 3. FILTER BAKING: Manually apply CSS filters to the canvas
         onclone: (clonedDoc) => {
           const images = clonedDoc.querySelectorAll('img');
           images.forEach((img) => {
@@ -255,12 +249,17 @@ export default function App() {
                 canvas.width = img.naturalWidth;
                 canvas.height = img.naturalHeight;
                 const ctx = canvas.getContext('2d');
-                ctx.filter = img.style.filter;
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                img.src = canvas.toDataURL('image/png');
-                img.style.filter = 'none';
+                
+                // Only apply if browser supports it
+                if (typeof ctx.filter !== 'undefined') {
+                    ctx.filter = img.style.filter;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    img.src = canvas.toDataURL('image/png');
+                    img.style.filter = 'none'; // Clear CSS filter so it's not double-applied
+                }
               } catch (err) {
-                console.error("Filter apply error", err);
+                console.warn("Filter fail:", err);
+                // Continue without filter rather than crashing
               }
             }
           });
@@ -268,12 +267,12 @@ export default function App() {
       });
       
       const link = document.createElement('a');
-      link.download = `photobooth-${new Date().getTime()}.png`;
+      link.download = `k-booth-${new Date().getTime()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err) {
       console.error("Download failed", err);
-      alert("Failed to generate image. Please try again.");
+      alert("Could not save photo. Please try again.");
     } finally {
       setIsDownloading(false);
     }
@@ -285,7 +284,7 @@ export default function App() {
     setStep('layout');
     setSelectedFilter(FILTERS[0]);
     setSelectedFrame(FRAME_COLORS[0]);
-    setIsAutoMode(false); // Ensure auto mode is off on restart
+    setIsAutoMode(false); 
   };
 
   const deleteLastPhoto = () => {
@@ -313,7 +312,6 @@ export default function App() {
           onUpload={handleFileUpload}
           onUndo={deleteLastPhoto}
           onBack={restart}
-          // --- NEW Props ---
           isAutoMode={isAutoMode}
           setIsAutoMode={setIsAutoMode}
         />

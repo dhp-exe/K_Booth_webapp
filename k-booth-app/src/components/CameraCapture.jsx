@@ -23,7 +23,13 @@ export default function CameraCapture({
     }
   }, [stream, videoRef]);
 
+  // Determine the aspect ratio based on the layout
+  // strip4 = 4:3 (Landscape) | grid = 2:3 (Portrait)
+  const isStrip = layout.id === 'strip4';
+  const viewfinderAspect = isStrip ? 'aspect-[4/3]' : 'aspect-[2/3]';
+
   const LayoutPreview = () => {
+    // Reduced padding for cleaner look
     const slotClass = "bg-gray-100 rounded-sm flex items-center justify-center text-gray-300 overflow-hidden relative";
     const activeClass = "ring-2 ring-pink-500 ring-offset-1"; 
     const cardClass = "bg-white p-1.5 md:p-3 rounded-lg md:rounded-xl shadow-lg border border-gray-100 flex flex-col transition-all duration-300 h-auto";
@@ -37,7 +43,7 @@ export default function CameraCapture({
                 {hasPhoto ? (
                     <img src={hasPhoto} alt={`shot-${index}`} className="w-full h-full object-cover" />
                 ) : (
-                    <ImageIcon size={12} strokeWidth={1.5} /> /* Reduced icon size */
+                    <ImageIcon size={12} strokeWidth={1.5} />
                 )}
             </div>
         );
@@ -46,7 +52,7 @@ export default function CameraCapture({
     switch (layout.id) {
       case 'strip4': 
         return (
-          <div className={`${cardClass} w-14 md:w-32`}>
+          <div className={`${cardClass} w-14 md:w-28`}>
              <div className="flex-1 flex flex-col gap-1 md:gap-2">
                 {[...Array(4)].map((_, i) => renderSlot(i, 'aspect-[4/3]'))}
              </div>
@@ -54,7 +60,7 @@ export default function CameraCapture({
         );
       case 'grid2x2':
         return (
-          <div className={`${cardClass} w-24 md:w-48`}>
+          <div className={`${cardClass} w-24 md:w-40`}>
             <div className="w-full grid grid-cols-2 gap-1 md:gap-2">
                {[...Array(4)].map((_, i) => renderSlot(i, 'aspect-[2/3]'))}
             </div>
@@ -62,7 +68,7 @@ export default function CameraCapture({
         );
       case 'grid3x2':
         return (
-          <div className={`${cardClass} w-24 md:w-48`}>
+          <div className={`${cardClass} w-24 md:w-40`}>
              <div className="w-full grid grid-cols-2 gap-1 md:gap-2">
                 {[...Array(6)].map((_, i) => renderSlot(i, 'aspect-[2/3]'))}
              </div>
@@ -74,7 +80,6 @@ export default function CameraCapture({
   };
 
   return (
-    // Changed h-screen to h-[100dvh] for mobile browser support
     <div className="flex flex-col h-[100dvh] bg-gray-900 text-white relative overflow-hidden">
       
       {/* Header */}
@@ -88,20 +93,26 @@ export default function CameraCapture({
         <div className="w-10"></div>
       </div>
 
-      {/* Main Viewfinder */}
-      {/* Reduced padding on mobile (p-2) to maximize screen real estate */}
-      <div className="flex-1 relative flex items-center justify-center bg-gray-900 p-2 pb-0 md:p-10 overflow-hidden">
-        <div className="relative w-full h-full max-w-4xl overflow-hidden rounded-2xl md:rounded-3xl shadow-2xl ring-1 ring-white/10 bg-black">
+      {/* Main Viewfinder Area */}
+      {/* Centered flex container */}
+      <div className="flex-1 relative flex items-center justify-center bg-gray-900 p-4 pb-0 md:p-10 overflow-hidden">
+        
+        {/* UPDATED: Viewfinder Container 
+            - Replaced 'w-full h-full' with 'max-w-full max-h-full' to allow aspect ratio to govern size.
+            - Added dynamic aspect ratio class matching the layout.
+        */}
+        <div className={`relative w-auto h-auto max-w-full max-h-full overflow-hidden rounded-2xl md:rounded-3xl shadow-2xl ring-1 ring-white/10 bg-black ${viewfinderAspect}`}>
             {stream ? (
             <video 
                 ref={videoRef} 
                 autoPlay 
                 playsInline 
                 muted
+                // object-cover ensures the video fills this constrained box perfectly
                 className="w-full h-full object-cover transform -scale-x-100" 
             />
             ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500 animate-pulse gap-2">
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 animate-pulse gap-2 bg-gray-800 w-full">
                 <div className="w-12 h-12 border-4 border-gray-600 border-t-gray-400 rounded-full animate-spin"></div>
                 <p className="text-sm font-medium tracking-wider">STARTING CAMERA</p>
             </div>
@@ -124,10 +135,9 @@ export default function CameraCapture({
       </div>
 
       {/* Controls Bar */}
-      {/* pb-safe handles iPhone Home Bar */}
       <div className="bg-black p-5 md:p-6 pb-8 md:pb-10 flex flex-col gap-4 items-center relative z-30 shadow-2xl safe-pb">
         
-        {/* Mobile Layout Preview (Floating above controls) */}
+        {/* Mobile Layout Preview */}
         <div className="md:hidden absolute bottom-full right-4 mb-4 origin-bottom-right drop-shadow-2xl">
             <LayoutPreview />
         </div>
@@ -159,7 +169,7 @@ export default function CameraCapture({
               </span>
            </button>
 
-           {/* Shutter Button (Center) */}
+           {/* Shutter Button */}
            <button 
              onClick={onTakePhoto}
              disabled={countdown !== null || photos.length >= layout.slots}
