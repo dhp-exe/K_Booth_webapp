@@ -1,4 +1,3 @@
-// src/components/CameraCapture.jsx
 import React, { useEffect } from 'react';
 import { Upload, ChevronLeft, X, Image as ImageIcon, Zap } from 'lucide-react';
 
@@ -29,7 +28,6 @@ export default function CameraCapture({
   const viewfinderAspect = isStrip ? 'aspect-[4/3]' : 'aspect-[2/3]';
 
   const LayoutPreview = () => {
-    // Reduced padding for cleaner look
     const slotClass = "bg-gray-100 rounded-sm flex items-center justify-center text-gray-300 overflow-hidden relative";
     const activeClass = "ring-2 ring-pink-500 ring-offset-1"; 
     const cardClass = "bg-white p-1.5 md:p-3 rounded-lg md:rounded-xl shadow-lg border border-gray-100 flex flex-col transition-all duration-300 h-auto";
@@ -97,10 +95,7 @@ export default function CameraCapture({
       {/* Centered flex container */}
       <div className="flex-1 relative flex items-center justify-center bg-gray-900 p-4 pb-0 md:p-10 overflow-hidden">
         
-        {/* UPDATED: Viewfinder Container 
-            - Replaced 'w-full h-full' with 'max-w-full max-h-full' to allow aspect ratio to govern size.
-            - Added dynamic aspect ratio class matching the layout.
-        */}
+        {/* Viewfinder Container */}
         <div className={`relative w-auto h-auto max-w-full max-h-full overflow-hidden rounded-2xl md:rounded-3xl shadow-2xl ring-1 ring-white/10 bg-black ${viewfinderAspect}`}>
             {stream ? (
             <video 
@@ -108,7 +103,6 @@ export default function CameraCapture({
                 autoPlay 
                 playsInline 
                 muted
-                // object-cover ensures the video fills this constrained box perfectly
                 className="w-full h-full object-cover transform -scale-x-100" 
             />
             ) : (

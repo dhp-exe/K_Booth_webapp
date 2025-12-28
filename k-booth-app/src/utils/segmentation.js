@@ -1,4 +1,3 @@
-// src/utils/segmentation.js
 import { SelfieSegmentation } from "@mediapipe/selfie_segmentation";
 
 let segmenter = null;
@@ -13,7 +12,7 @@ const initSegmenter = () => {
     });
 
     s.setOptions({
-      // 0 = General (256x256) - Better edges, especially for hair
+      // 0 = General (256x256)
       modelSelection: 0, 
     });
 
@@ -41,21 +40,12 @@ export const removeBackground = async (imageSrc) => {
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // --- STEP 1: Draw the Mask with Erosion ---
-        // 1. blur(4px): Softens the pixelated edges of the raw mask.
-        // 2. brightness(0.7): Darkens the mask (shrinking the white area). 
-        //    This effectively pulls the edge INWARDS, hiding the background halo.
-        // 3. contrast(250%): Re-sharpens the edge so it isn't too blurry, 
-        //    but keeps the "shrunken" boundary.
         ctx.filter = 'blur(4px) brightness(0.7) contrast(250%)';
         
         ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
         
-        // Reset filter for the actual image drawing
         ctx.filter = 'none';
 
-        // --- STEP 2: Composite the Person ---
-        // 'source-in' keeps the image only where the mask (drawn above) exists
         ctx.globalCompositeOperation = "source-in";
         ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 

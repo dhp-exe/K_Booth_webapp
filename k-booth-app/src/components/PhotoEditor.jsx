@@ -1,4 +1,3 @@
-// src/components/PhotoEditor.jsx
 import React, { useState } from 'react';
 import { Download, RefreshCw, Palette, Layout, Check, Sparkles } from 'lucide-react';
 import { BACKGROUNDS } from '../constants/config';
@@ -134,7 +133,6 @@ export default function PhotoEditor({
           if (selectedBg.type === 'color' || selectedBg.type === 'gradient') {
             // Check for Gradient
             if (selectedBg.value.includes('gradient')) {
-                // Simple gradient approximation (Pink/Blue example)
                 const grad = ctx.createLinearGradient(x, y + photoHeight, x, y);
                 grad.addColorStop(0, '#fbc2eb'); 
                 grad.addColorStop(1, '#a6c1ee');
@@ -236,7 +234,6 @@ export default function PhotoEditor({
             
                 {/* Visual Preview (React Rendering) */}
                 <div 
-                    // ref={printRef} // REMOVED
                     className={`relative shadow-2xl overflow-hidden transition-colors duration-300 ${containerWidth} shrink-0`}
                     style={{ backgroundColor: selectedFrame.hex }}
                 >
@@ -300,10 +297,7 @@ export default function PhotoEditor({
            <button onClick={onRestart} className="text-[10px] md:text-sm text-red-400 hover:text-red-600 font-medium">Reset</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-6">
-          {/* ... (Keep Backgrounds, Filters, Frames sections EXACTLY as they were) ... */}
-          {/* ... (I'm skipping pasting the map loops here to save space, but DO NOT delete them) ... */}
-          
+        <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-6">          
           {/* Backgrounds */}
           <div>
             <div className="flex items-center gap-1 md:gap-2 mb-2 text-gray-800 font-medium text-xs md:text-sm">
@@ -380,7 +374,7 @@ export default function PhotoEditor({
         {/* Footer Actions */}
         <div className="p-3 md:p-5 bg-gray-50 border-t border-gray-100 shrink-0 safe-pb">
           <button 
-            onClick={handleDownload} // UPDATED to use internal handler
+            onClick={handleDownload}
             disabled={isSaving || isProcessing}
             className="w-full bg-pink-500 active:bg-pink-600 text-white py-3 rounded-xl font-bold text-xs md:text-lg shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
           >

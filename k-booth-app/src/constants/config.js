@@ -28,7 +28,6 @@ export const FILTERS = [
   },
 ];
 
-// Keep your existing LAYOUTS and FRAME_COLORS the same
 export const LAYOUTS = [
   { id: 'strip4', name: '2x6 Strip', slots: 4, cols: 1, label: 'Classic Strip' },
   { id: 'grid2x2', name: '4x6 Vertical', slots: 4, cols: 2, label: '4-Photo Frame' },
@@ -38,13 +37,11 @@ export const LAYOUTS = [
 export const BACKGROUNDS = [
   { id: 'none', name: 'None', type: 'color', value: 'transparent' },
   
-  // Color/Gradient Options (Optional)
   { id: 'bg-pink', name: 'Pink', type: 'color', value: '#ffcfd2' },
   { id: 'bg-film', name: 'Film', type: 'color', value: '#767257' },
   { id: 'bg-grey', name: 'Dark Grey', type: 'color', value: '#3c3d42' },
   { id: 'bg-deepBlue', name: 'Deep Blue', type: 'color', value: '#192841' },
 
-  // Your Local Image Assets
   { id: 'bg-1', name: 'Curtain 1', type: 'image', value: bg1 },
   { id: 'bg-2', name: 'Stranger Things', type: 'image', value: bg2 },
   { id: 'bg-3', name: 'Curtain 2', type: 'image', value: bg3 },

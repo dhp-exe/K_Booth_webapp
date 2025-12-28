@@ -3,18 +3,15 @@ import { Sparkles, Image as ImageIcon } from 'lucide-react';
 
 export default function LayoutSelection({ layouts, onSelect }) {
   
-  // Helper to render the specific visual for each layout type
   const renderPreview = (layoutId) => {
-    // Common styles for the photo placeholders
     const slotClass = "bg-[#dbeafe] rounded-sm flex items-center justify-center text-slate-400";
     const iconSize = 20;
 
-    // Common styles for the outer white card (The "Frame")
     const cardClass = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col";
 
     switch (layoutId) {
       case 'strip4':
-        // 4 Photo Strip (Vertical Stack) matches the top reference image
+        // 4 Photo Strip (Vertical Stack)
         return (
           <div className={`${cardClass} w-32 h-64`}>
              <div className="flex-1 flex flex-col gap-2">
@@ -28,7 +25,7 @@ export default function LayoutSelection({ layouts, onSelect }) {
         );
 
       case 'grid2x2':
-        // 4x6 Vertical (2x2 Grid) - Keeping consistency with the style
+        // 4x6 Vertical (2x2 Grid) 
         return (
           <div className={`${cardClass} w-44 h-64 justify-center`}>
             <div className="aspect-[2/3] w-full grid grid-cols-2 gap-2">
@@ -42,7 +39,7 @@ export default function LayoutSelection({ layouts, onSelect }) {
         );
 
       case 'grid3x2':
-        // 2x3 Grid (6 Photos) matches the bottom reference image
+        // 2x3 Grid (6 Photos)
         return (
           <div className={`${cardClass} w-44 h-64 justify-center`}>
              <div className="aspect-[2/3] w-full grid grid-cols-2 gap-2">

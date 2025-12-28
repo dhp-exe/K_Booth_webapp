@@ -26,11 +26,8 @@ A modern, interactive Korean-style photobooth web application built with React a
 * **Icons:** [Lucide React](https://lucide.dev/)
 * **Image Generation:** [html2canvas](https://html2canvas.hertzen.com/)
 
-## 🚀 Getting Started
 
-Follow these instructions to set up the project locally on your machine.
-
-### Prerequisites
+## Prerequisites
 
 * Node.js (v16 or higher) installed.
 

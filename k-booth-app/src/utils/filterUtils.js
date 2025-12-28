@@ -1,5 +1,3 @@
-// src/utils/filterUtils.js
-
 /**
  * Matrix Multiplication Helper
  * Multiplies two 4x5 matrices (handling RGBA + Offset)
@@ -20,7 +18,7 @@ const multiplyMatrices = (m1, m2) => {
         for (let k = 0; k < 4; k++) {
           sum += m1[row * 5 + k] * m2[k * 5 + col];
         }
-        // Add the offset component from m1 if we are computing the offset column
+        // Add the offset component from m1 
         if (col === 4) {
           sum += m1[row * 5 + 4];
         }
@@ -113,7 +111,6 @@ const multiplyMatrices = (m1, m2) => {
     const regex = /([a-z-]+)\(([^)]+)\)/g;
     let match;
   
-    // We loop through the string to respect the order of operations
     while ((match = regex.exec(filterCss)) !== null) {
       const name = match[1];
       const valStr = match[2];
